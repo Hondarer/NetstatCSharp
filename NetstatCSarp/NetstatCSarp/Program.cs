@@ -235,12 +235,22 @@ namespace NetstatCSharp
                 LocalAddress = localAddress;
                 LocalPort = localPort;
                 ProcessId = pId;
+                // Getting the process name associated with a process id.
                 if (Process.GetProcesses().Any(process => process.Id == pId))
+                {
                     ProcessName = Process.GetProcessById((int)ProcessId).ProcessName;
+                }
             }
         }
 
+        /// <summary>
+        /// IPv4 を表します。
+        /// </summary>
         public const int AF_INET = 2;    // IP_v4 = System.Net.Sockets.AddressFamily.InterNetwork
+
+        /// <summary>
+        /// IPv6 を表します。
+        /// </summary>
         public const int AF_INET6 = 23;  // IP_v6 = System.Net.Sockets.AddressFamily.InterNetworkV6
 
         // The GetExtendedTcpTable function retrieves a table that contains a list of
@@ -251,13 +261,21 @@ namespace NetstatCSharp
         private static extern uint GetExtendedTcpTable(IntPtr pTcpTable, ref int pdwSize,
             bool bOrder, int ulAf, TcpTableClass tableClass, uint reserved = 0);
 
-        // The GetExtendedUdpTable function retrieves a table that contains a list of
-        // UDP endpoints available to the application. Decorating the function with
-        // DllImport attribute indicates that the attributed method is exposed by an
-        // unmanaged dynamic-link library 'iphlpapi.dll' as a static entry point.
-        [DllImport("iphlpapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern uint GetExtendedUdpTable(IntPtr pUdpTable, ref int pdwSize,
-            bool bOrder, int ulAf, UdpTableClass tableClass, uint reserved = 0);
+        /// <summary>
+        /// Retrieves a table that contains a list of UDP endpoints available to the application.
+        /// </summary>
+        /// <param name="pUdpTable"></param>
+        /// <param name="pdwSize"></param>
+        /// <param name="bOrder"></param>
+        /// <param name="ulAf"></param>
+        /// <param name="tableClass"></param>
+        /// <param name="reserved"></param>
+        /// <returns>
+        /// If the call is successful, the value <c>0</c> is returned.
+        /// If the function fails, the return value is one of the following error codes.
+        /// </returns>
+        [DllImport("iphlpapi.dll")]
+        private static extern uint GetExtendedUdpTable(IntPtr pUdpTable, ref int pdwSize, bool bOrder, int ulAf, UdpTableClass tableClass, uint reserved = 0);
 
         /// <summary>
         /// This function reads and parses the active TCP socket connections available
@@ -500,122 +518,241 @@ namespace NetstatCSharp
                 .ToList<UdpProcessRecord>() : new List<UdpProcessRecord>();
         }
 
-        private static List<UdpProcessRecord> GetAllUdpv6Connections()
+        /// <summary>
+        /// IPv6 の UDP 接続を列挙します。
+        /// </summary>
+        /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
+        /// <returns>UDP 接続のリスト。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
+        /// <exception cref="Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
+        private static List<UdpProcessRecord> GetAllUdpv6Connections(bool throwException = false)
         {
             int bufferSize = 0;
             List<UdpProcessRecord> udpTableRecords = new List<UdpProcessRecord>();
 
             // Getting the size of UDP table, that is returned in 'bufferSize' variable.
-            uint result = GetExtendedUdpTable(IntPtr.Zero, ref bufferSize, true,
-                AF_INET6, UdpTableClass.UDP_TABLE_OWNER_PID);
+            uint result = GetExtendedUdpTable(IntPtr.Zero, ref bufferSize, true, AF_INET6, UdpTableClass.UDP_TABLE_OWNER_PID);
+            // ここでの result は必ず ERROR_INSUFFICIENT_BUFFER(0x0000007a) なので見ない
 
             // Allocating memory from the unmanaged memory of the process by using the
             // specified number of bytes in 'bufferSize' variable.
-            IntPtr udpTableRecordPtr = Marshal.AllocHGlobal(bufferSize);
+            IntPtr udpTableRecordPtr = Marshal.AllocCoTaskMem(bufferSize);
 
             try
             {
                 // The size of the table returned in 'bufferSize' variable in previous
                 // call must be used in this subsequent call to 'GetExtendedUdpTable'
                 // function in order to successfully retrieve the table.
-                result = GetExtendedUdpTable(udpTableRecordPtr, ref bufferSize, true,
-                    AF_INET6, UdpTableClass.UDP_TABLE_OWNER_PID);
+                result = GetExtendedUdpTable(udpTableRecordPtr, ref bufferSize, true, AF_INET6, UdpTableClass.UDP_TABLE_OWNER_PID);
 
                 // Non-zero value represent the function 'GetExtendedUdpTable' failed,
                 // hence empty list is returned to the caller function.
                 if (result != 0)
-                    return new List<UdpProcessRecord>();
+                {
+                    if (throwException == true)
+                    {
+                        throw new Win32Exception("GetExtendedUdpTable");
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
 
                 // Marshals data from an unmanaged block of memory to a newly allocated
                 // managed object 'udpRecordsTable' of type 'MIB_UDPTABLE_OWNER_PID'
                 // to get number of entries of the specified TCP table structure.
-                MIB_UDP6TABLE_OWNER_PID udpRecordsTable = (MIB_UDP6TABLE_OWNER_PID)
-                    Marshal.PtrToStructure(udpTableRecordPtr, typeof(MIB_UDP6TABLE_OWNER_PID));
-                IntPtr tableRowPtr = (IntPtr)((long)udpTableRecordPtr +
-                    Marshal.SizeOf(udpRecordsTable.dwNumEntries));
+                MIB_UDP6TABLE_OWNER_PID udpRecordsTable = (MIB_UDP6TABLE_OWNER_PID)Marshal.PtrToStructure(udpTableRecordPtr, typeof(MIB_UDP6TABLE_OWNER_PID));
+                IntPtr tableRowPtr = (IntPtr)((long)udpTableRecordPtr + Marshal.SizeOf(udpRecordsTable.dwNumEntries));
 
                 // Reading and parsing the UDP records one by one from the table and
                 // storing them in a list of 'UdpProcessRecord' structure type objects.
                 for (int i = 0; i < udpRecordsTable.dwNumEntries; i++)
                 {
-                    MIB_UDP6ROW_OWNER_PID udpRow = (MIB_UDP6ROW_OWNER_PID)
-                        Marshal.PtrToStructure(tableRowPtr, typeof(MIB_UDP6ROW_OWNER_PID));
-                    udpTableRecords.Add(new UdpProcessRecord(new IPAddress(udpRow.localAddr, udpRow.localScopeId),
-                        BitConverter.ToUInt16(new byte[2] { udpRow.localPort[1],
-                            udpRow.localPort[0] }, 0), udpRow.owningPid));
+                    MIB_UDP6ROW_OWNER_PID udpRow = (MIB_UDP6ROW_OWNER_PID)Marshal.PtrToStructure(tableRowPtr, typeof(MIB_UDP6ROW_OWNER_PID));
+                    udpTableRecords.Add(
+                        new UdpProcessRecord(
+                            new IPAddress(
+                                udpRow.localAddr, 
+                                udpRow.localScopeId),
+                                BitConverter.ToUInt16(new byte[] { udpRow.localPort[1], udpRow.localPort[0] }, 0),
+                                udpRow.owningPid));
+
                     tableRowPtr = (IntPtr)((long)tableRowPtr + Marshal.SizeOf(udpRow));
                 }
             }
-            catch (OutOfMemoryException outOfMemoryException)
+            catch (Exception)
             {
-                //MessageBox.Show(outOfMemoryException.Message, "Out Of Memory",
-                //    MessageBoxButtons.OK, MessageBoxIcon.Stop);
-            }
-            catch (Exception exception)
-            {
-                //MessageBox.Show(exception.Message, "Exception",
-                //    MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                if (throwException == true)
+                {
+                    throw;
+                }
+                else
+                {
+                    return null;
+                }
             }
             finally
             {
-                Marshal.FreeHGlobal(udpTableRecordPtr);
+                Marshal.FreeCoTaskMem(udpTableRecordPtr);
             }
-            return udpTableRecords != null ? udpTableRecords.Distinct()
-                .ToList<UdpProcessRecord>() : new List<UdpProcessRecord>();
+
+            return udpTableRecords;
         }
 
+        /// <summary>
+        /// Length of description of the Windows Sockets implementation.
+        /// </summary>
         private const int WSADESCRIPTION_LEN = 256;
 
+        /// <summary>
+        /// Length of status or configuration information.
+        /// </summary>
         private const int WSASYSSTATUS_LEN = 128;
 
+        /// <summary>
+        /// Contains information about the Windows Sockets implementation.
+        /// </summary>
         [StructLayout(LayoutKind.Sequential)]
         public struct WSAData
         {
+            /// <summary>
+            /// The version of the Windows Sockets specification that the Ws2_32.dll expects the caller to use.
+            /// </summary>
             public short wVersion;
+
+            /// <summary>
+            /// The highest version of the Windows Sockets specification that the Ws2_32.dll can support.
+            /// </summary>
             public short wHighVersion;
 
+            /// <summary>
+            /// String into which the Ws2_32.dll copies a description of the Windows Sockets implementation.
+            /// </summary>
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = WSADESCRIPTION_LEN + 1)]
             public string szDescription;
 
+            /// <summary>
+            /// String into which the Ws2_32.dll copies relevant status or configuration information.
+            /// </summary>
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = WSASYSSTATUS_LEN + 1)]
             public string wSystemStatus;
+
+            /// <summary>
+            /// The maximum number of sockets that may be opened.
+            /// </summary>
             [Obsolete("Ignored when wVersionRequested >= 2.0")]
             public ushort wMaxSockets;
+
+            /// <summary>
+            /// The maximum datagram message size.
+            /// </summary>
             [Obsolete("Ignored when wVersionRequested >= 2.0")]
             public ushort wMaxUdpDg;
+
+            /// <summary>
+            /// A pointer to vendor-specific information. This member should be ignored for Windows Sockets version 2 and later.
+            /// </summary>
+            [Obsolete("Ignored when wVersionRequested >= 2.0")]
             public IntPtr dwVendorInfo;
         }
 
-
+        /// <summary>
+        /// Used to store or return the name and service number for a given service name.
+        /// </summary>
         [StructLayout(LayoutKind.Sequential)]
         public struct Servent
         {
+            /// <summary>
+            /// The official name of the service.
+            /// </summary>
             public string s_name;
+
+            /// <summary>
+            /// array of alternate names.
+            /// </summary>
             public IntPtr s_aliases;
+
+            /// <summary>
+            /// The port number at which the service can be contacted. Port numbers are returned in network byte order.
+            /// </summary>
             public short s_port;
+
+            /// <summary>
+            /// The name of the protocol to use when contacting the service.
+            /// </summary>
             public string s_proto;
         }
 
+        /// <summary>
+        /// ネットワーク バイト オーダーのワードを生成します。
+        /// </summary>
+        /// <param name="low">下位バイト。</param>
+        /// <param name="high">上位バイト。</param>
+        /// <returns>ネットワーク バイト オーダーのワード。</returns>
         private static ushort MakeWord(byte low, byte high)
         {
-
             return (ushort)((ushort)(high << 8) | low);
         }
 
-        [DllImport("ws2_32.dll", CharSet = CharSet.Auto, ExactSpelling = true, SetLastError = true)]
+        /// <summary>
+        /// 利用する Winsock のメジャーバージョンを表します。
+        /// </summary>
+        private const int WINSOCK_MAJOR_VERSION = 2;
+
+        /// <summary>
+        /// 利用する Winsock のマイナーバージョンを表します。
+        /// </summary>
+        private const int WINSOCK_MINOR_VERSION = 2;
+
+        /// <summary>
+        /// Initiates use of the Winsock DLL by a process.
+        /// </summary>
+        /// <param name="wVersionRequested">The highest version of Windows Sockets specification that the caller can use.</param>
+        /// <param name="wsaData">A refernce to the <see cref="WSAData"/> data structure that is to receive details of the Windows Sockets implementation.</param>
+        /// <returns>
+        /// If successful, the function returns zero. Otherwise, it returns one of the error codes listed below.
+        /// </returns>
+        [DllImport("ws2_32.dll", SetLastError = true)]
         private static extern int WSAStartup(ushort wVersionRequested, ref WSAData wsaData);
-        [DllImport("ws2_32.dll", CharSet = CharSet.Auto, ExactSpelling = true, SetLastError = true)]
+
+        /// <summary>
+        /// Terminates use of the Winsock 2 DLL (Ws2_32.dll).
+        /// </summary>
+        /// <returns>The return value is zero if the operation was successful. Otherwise, the value SOCKET_ERROR is returned.</returns>
+        [DllImport("ws2_32.dll", SetLastError = true)]
         private static extern int WSACleanup();
-        [DllImport("ws2_32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
+
+        /// <summary>
+        /// Retrieves service information corresponding to a service name and protocol.
+        /// </summary>
+        /// <param name="name">service name.</param>
+        /// <param name="proto">protocol name.</param>
+        /// <returns>If no error occurs, getservbyname returns a pointer to the <see cref="Servent"/> structure. Otherwise, it returns a <see cref="IntPtr.Zero"/>.</returns>
+        [DllImport("ws2_32.dll", SetLastError = true)]
         private static extern IntPtr getservbyname(string name, string proto);
-        [DllImport("ws2_32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
+
+        /// <summary>
+        /// Retrieves service information corresponding to a port and protocol.
+        /// </summary>
+        /// <param name="port">Port for a service, in network byte order.</param>
+        /// <param name="proto">protocol name.</param>
+        /// <returns>If no error occurs, getservbyname returns a pointer to the <see cref="Servent"/> structure. Otherwise, it returns a <see cref="IntPtr.Zero"/>.</returns>
+        [DllImport("ws2_32.dll", SetLastError = true)]
         private static extern IntPtr getservbyport(short port, string proto);
 
+        /// <summary>
+        /// ポート番号とプロトコルから、サービス名を取得します。
+        /// </summary>
+        /// <param name="port">ポート番号。</param>
+        /// <param name="protocol">プロトコル。</param>
+        /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
+        /// <returns>サービス名。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
+        /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
         public static string GetServiceByPort(short port, Protocol protocol, bool throwException = false)
         {
 
             WSAData wsaData = new WSAData();
-            if (WSAStartup(MakeWord(2, 2), ref wsaData) != 0)
+            if (WSAStartup(MakeWord(WINSOCK_MAJOR_VERSION, WINSOCK_MINOR_VERSION), ref wsaData) != 0)
             {
                 if (throwException == true)
                 {
@@ -623,14 +760,14 @@ namespace NetstatCSharp
                 }
                 else
                 {
-                    return string.Empty;
+                    return null;
                 }
             }
             try
             {
                 short netport = Convert.ToInt16(IPAddress.HostToNetworkOrder(port));
                 IntPtr result = getservbyport(netport, protocol.ToString());
-                if (IntPtr.Zero == result)
+                if (result == IntPtr.Zero)
                 {
                     if (throwException == true)
                     {
@@ -638,11 +775,11 @@ namespace NetstatCSharp
                     }
                     else
                     {
-                        return string.Empty;
+                        return null;
                     }
                 }
                 Servent srvent = (Servent)Marshal.PtrToStructure(result, typeof(Servent));
-                return srvent.s_name; ;
+                return srvent.s_name;
             }
             finally
             {
@@ -650,12 +787,18 @@ namespace NetstatCSharp
             }
         }
 
-
+        /// <summary>
+        /// サービス名とプロトコルから、ポート番号を取得します。
+        /// </summary>
+        /// <param name="service">サービス名。</param>
+        /// <param name="protocol">プロトコル。</param>
+        /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
+        /// <returns>ポート番号。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>-1</c> を返します。</returns>
+        /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
         public static short GetServiceByName(string service, Protocol protocol, bool throwException = false)
         {
-
             WSAData wsaData = new WSAData();
-            if (WSAStartup(MakeWord(2, 2), ref wsaData) != 0)
+            if (WSAStartup(MakeWord(WINSOCK_MAJOR_VERSION, WINSOCK_MINOR_VERSION), ref wsaData) != 0)
             {
                 if (throwException == true)
                 {
@@ -669,7 +812,7 @@ namespace NetstatCSharp
             try
             {
                 IntPtr result = getservbyname(service, protocol.ToString());
-                if (IntPtr.Zero == result)
+                if (result == IntPtr.Zero)
                 {
                     if (throwException == true)
                     {
@@ -689,6 +832,10 @@ namespace NetstatCSharp
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="args"></param>
         static void Main(string[] args)
         {
             List<TcpProcessRecord> tcpv4Connections = GetAllTcpv4Connections();
@@ -710,9 +857,12 @@ namespace NetstatCSharp
             {
                 Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"*\"\t*\t\"*\"\t\"\"\t{4}\t\"{5}\"", Protocol.udp.ToString(), udpRecord.LocalAddress, udpRecord.LocalPort, GetServiceByPort((short)udpRecord.LocalPort, Protocol.udp), udpRecord.ProcessId, udpRecord.ProcessName);
             }
-            foreach (UdpProcessRecord udpv6Record in udpv6Connections)
+            if (udpv6Connections != null)
             {
-                Console.WriteLine("\"{0}\"\t\"[{1}]\"\t{2}\t\"{3}\"\t\"*\"\t*\t\"*\"\t\"\"\t{4}\t\"{5}\"", Protocol.udp.ToString(), udpv6Record.LocalAddress, udpv6Record.LocalPort, GetServiceByPort((short)udpv6Record.LocalPort, Protocol.udp), udpv6Record.ProcessId, udpv6Record.ProcessName);
+                foreach (UdpProcessRecord udpv6Record in udpv6Connections)
+                {
+                    Console.WriteLine("\"{0}\"\t\"[{1}]\"\t{2}\t\"{3}\"\t\"*\"\t*\t\"*\"\t\"\"\t{4}\t\"{5}\"", Protocol.udp.ToString(), udpv6Record.LocalAddress, udpv6Record.LocalPort, GetServiceByPort((short)udpv6Record.LocalPort, Protocol.udp), udpv6Record.ProcessId, udpv6Record.ProcessName);
+                }
             }
         }
     }
