@@ -728,12 +728,12 @@ namespace NetstatCSharp
         }
 
         /// <summary>
-        /// サービス名とプロトコルから、ポート番号を得るディクショナリを保持します。
+        /// サービス名とポート番号から、プロトコル名を得るディクショナリを保持します。
         /// </summary>
         private static Dictionary<Protocol, Dictionary<short, string>> portToServiceName = new Dictionary<Protocol, Dictionary<short, string>>();
 
         /// <summary>
-        /// サービス名とプロトコルから、ポート番号を得るディクショナリを保持します。
+        /// サービス名とプロトコル名から、ポート番号を得るディクショナリを保持します。
         /// </summary>
         private static Dictionary<Protocol, Dictionary<string, short>> serviceNameToPort = new Dictionary<Protocol, Dictionary<string, short>>();
 
