@@ -608,7 +608,7 @@ namespace NetstatCSharp
             /// PID を設定します。
             /// </summary>
             /// <param name="processId">PID。</param>
-            /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。</param>
+            /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリーを指定します。<c>null</c> の場合はキャッシュを行いません。</param>
             protected void SetProcessId(uint processId, Dictionary<uint, string> pidToProcessName)
             {
                 ProcessId = processId;
@@ -685,7 +685,7 @@ namespace NetstatCSharp
             /// <param name="remotePort">The remote port number for the TCP connection on the remote computer.</param>
             /// <param name="pId">The PID of the process that issued a context bind for this TCP connection.</param>
             /// <param name="state">The state of the TCP connection.</param>
-            /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
+            /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリーを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
             public TcpProcessRecord(IPAddress localIp, IPAddress remoteIp, ushort localPort, ushort remotePort, uint pId, MibTcpState state, Dictionary<uint, string> pidToProcessName = null)
             {
                 LocalAddress = localIp;
@@ -719,7 +719,7 @@ namespace NetstatCSharp
             /// <param name="localAddress">The address of the UDP endpoint on the local computer.</param>
             /// <param name="localPort">The port number of the UDP endpoint on the local computer.</param>
             /// <param name="pId">The PID of the process that issued the call to the bind function for the UDP endpoint.</param>
-            /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
+            /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリーを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
             public UdpProcessRecord(IPAddress localAddress, uint localPort, uint pId, Dictionary<uint, string> pidToProcessName = null)
             {
                 LocalAddress = localAddress;
@@ -729,19 +729,19 @@ namespace NetstatCSharp
         }
 
         /// <summary>
-        /// サービス名とポート番号から、プロトコル名を得るディクショナリを保持します。
+        /// サービス名とポート番号から、プロトコル名を得るディクショナリーを保持します。
         /// </summary>
         private static Dictionary<Protocol, Dictionary<short, string>> portToServiceName = new Dictionary<Protocol, Dictionary<short, string>>();
 
         /// <summary>
-        /// サービス名とプロトコル名から、ポート番号を得るディクショナリを保持します。
+        /// サービス名とプロトコル名から、ポート番号を得るディクショナリーを保持します。
         /// </summary>
         private static Dictionary<Protocol, Dictionary<string, short>> serviceNameToPort = new Dictionary<Protocol, Dictionary<string, short>>();
 
         /// <summary>
         /// IPv4 の TCP 接続を列挙したリストを返します。
         /// </summary>
-        /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
+        /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリーを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
         /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
         /// <returns>IPv4 の TCP 接続のリスト。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
         /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
@@ -814,7 +814,7 @@ namespace NetstatCSharp
         /// <summary>
         /// IPv6 の TCP 接続を列挙したリストを返します。
         /// </summary>
-        /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
+        /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリーを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
         /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
         /// <returns>IPv6 の TCP 接続のリスト。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
         /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
@@ -887,7 +887,7 @@ namespace NetstatCSharp
         /// <summary>
         /// IPv4 の UDP エンドポイントを列挙したリストを返します。
         /// </summary>
-        /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
+        /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリーを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
         /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
         /// <returns>IPv4 の UDP エンドポイントのリスト。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
         /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
@@ -957,7 +957,7 @@ namespace NetstatCSharp
         /// <summary>
         /// IPv6 の UDP エンドポイントを列挙したリストを返します。
         /// </summary>
-        /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
+        /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリーを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
         /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
         /// <returns>IPv6 の UDP エンドポイントのリスト。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
         /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
