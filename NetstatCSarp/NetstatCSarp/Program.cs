@@ -16,19 +16,28 @@ namespace NetstatCSharp
     /// <summary>
     /// 
     /// </summary>
-    class Program
+    public class Program
     {
         /// <summary>
         /// Enum for protocol types.
         /// </summary>
         public enum Protocol
         {
+            /// <summary>
+            /// TCP.
+            /// </summary>
             tcp,
+
+            /// <summary>
+            /// UDP.
+            /// </summary>
             udp
         }
 
-        // Enum to define the set of values used to indicate the type of table returned by 
-        // calls made to the function 'GetExtendedTcpTable'.
+        /// <summary>
+        /// Enum to define the set of values used to indicate the type of table returned by 
+        /// calls made to the function <see cref="GetExtendedTcpTable"/>.
+        /// </summary>
         public enum TcpTableClass
         {
             TCP_TABLE_BASIC_LISTENER,
@@ -42,8 +51,10 @@ namespace NetstatCSharp
             TCP_TABLE_OWNER_MODULE_ALL
         }
 
-        // Enum to define the set of values used to indicate the type of table returned by calls
-        // made to the function GetExtendedUdpTable.
+        /// <summary>
+        /// Enum to define the set of values used to indicate the type of table returned by calls
+        /// made to the function <see cref="GetExtendedUdpTable"/>.
+        /// </summary>
         public enum UdpTableClass
         {
             UDP_TABLE_BASIC,
@@ -51,7 +62,9 @@ namespace NetstatCSharp
             UDP_TABLE_OWNER_MODULE
         }
 
-        // Enum for different possible states of TCP connection
+        /// <summary>
+        /// Enum for different possible states of TCP connection.
+        /// </summary>
         public enum MibTcpState
         {
             CLOSED = 1,
@@ -84,7 +97,24 @@ namespace NetstatCSharp
             public uint remoteAddr;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
             public byte[] remotePort;
-            public int owningPid;
+            public uint owningPid;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MIB_TCP6ROW_OWNER_PID
+        {
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+            public byte[] localAddr;
+            public uint localScopeId;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] localPort;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+            public byte[] remoteAddr;
+            public uint remoteScopeId;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] remotePort;
+            public MibTcpState state;
+            public uint owningPid;
         }
 
         /// <summary>
@@ -95,9 +125,16 @@ namespace NetstatCSharp
         public struct MIB_TCPTABLE_OWNER_PID
         {
             public uint dwNumEntries;
-            [MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.Struct,
-                SizeConst = 1)]
+            [MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.Struct, SizeConst = 1)]
             public MIB_TCPROW_OWNER_PID[] table;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MIB_TCP6TABLE_OWNER_PID
+        {
+            public uint dwNumEntries;
+            [MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.Struct, SizeConst = 1)]
+            public MIB_TCP6ROW_OWNER_PID[] table;
         }
 
         /// <summary>
@@ -108,15 +145,16 @@ namespace NetstatCSharp
         public class TcpProcessRecord
         {
             public IPAddress LocalAddress { get; set; }
+            public long LocalScopeId { get; set; }
             public ushort LocalPort { get; set; }
             public IPAddress RemoteAddress { get; set; }
+            public long RemoteScopeId { get; set; }
             public ushort RemotePort { get; set; }
             public MibTcpState State { get; set; }
-            public int ProcessId { get; set; }
+            public uint ProcessId { get; set; }
             public string ProcessName { get; set; }
 
-            public TcpProcessRecord(IPAddress localIp, IPAddress remoteIp, ushort localPort,
-                ushort remotePort, int pId, MibTcpState state)
+            public TcpProcessRecord(IPAddress localIp, IPAddress remoteIp, ushort localPort, ushort remotePort, uint pId, MibTcpState state)
             {
                 LocalAddress = localIp;
                 RemoteAddress = remoteIp;
@@ -127,7 +165,7 @@ namespace NetstatCSharp
                 // Getting the process name associated with a process id.
                 if (Process.GetProcesses().Any(process => process.Id == pId))
                 {
-                    ProcessName = Process.GetProcessById(ProcessId).ProcessName;
+                    ProcessName = Process.GetProcessById((int)ProcessId).ProcessName;
                 }
             }
         }
@@ -143,7 +181,18 @@ namespace NetstatCSharp
             public uint localAddr;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
             public byte[] localPort;
-            public int owningPid;
+            public uint owningPid;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MIB_UDP6ROW_OWNER_PID
+        {
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+            public byte[] localAddr;
+            public uint localScopeId;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] localPort;
+            public uint owningPid;
         }
 
         /// <summary>
@@ -157,7 +206,16 @@ namespace NetstatCSharp
             public uint dwNumEntries;
             [MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.Struct,
                 SizeConst = 1)]
-            public UdpProcessRecord[] table;
+            public MIB_UDPROW_OWNER_PID[] table;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MIB_UDP6TABLE_OWNER_PID
+        {
+            public uint dwNumEntries;
+            [MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.Struct,
+                SizeConst = 1)]
+            public MIB_UDP6ROW_OWNER_PID[] table;
         }
 
         /// <summary>
@@ -169,21 +227,21 @@ namespace NetstatCSharp
         {
             public IPAddress LocalAddress { get; set; }
             public uint LocalPort { get; set; }
-            public int ProcessId { get; set; }
+            public uint ProcessId { get; set; }
             public string ProcessName { get; set; }
 
-            public UdpProcessRecord(IPAddress localAddress, uint localPort, int pId)
+            public UdpProcessRecord(IPAddress localAddress, uint localPort, uint pId)
             {
                 LocalAddress = localAddress;
                 LocalPort = localPort;
                 ProcessId = pId;
                 if (Process.GetProcesses().Any(process => process.Id == pId))
-                    ProcessName = Process.GetProcessById(ProcessId).ProcessName;
+                    ProcessName = Process.GetProcessById((int)ProcessId).ProcessName;
             }
         }
 
-        // The version of IP used by the TCP/UDP endpoint. AF_INET is used for IPv4.
-        private const int AF_INET = 2;
+        public const int AF_INET = 2;    // IP_v4 = System.Net.Sockets.AddressFamily.InterNetwork
+        public const int AF_INET6 = 23;  // IP_v6 = System.Net.Sockets.AddressFamily.InterNetworkV6
 
         // The GetExtendedTcpTable function retrieves a table that contains a list of
         // TCP endpoints available to the application. Decorating the function with
@@ -212,7 +270,7 @@ namespace NetstatCSharp
         /// This exception may be thrown by the function Marshal.AllocHGlobal when there
         /// is insufficient memory to satisfy the request.
         /// </exception>
-        private static List<TcpProcessRecord> GetAllTcpConnections()
+        private static List<TcpProcessRecord> GetAllTcpv4Connections()
         {
             int bufferSize = 0;
             List<TcpProcessRecord> tcpTableRecords = new List<TcpProcessRecord>();
@@ -285,6 +343,89 @@ namespace NetstatCSharp
         }
 
         /// <summary>
+        /// This function reads and parses the active TCP socket connections available
+        /// and stores them in a list.
+        /// </summary>
+        /// <returns>
+        /// It returns the current set of TCP socket connections which are active.
+        /// </returns>
+        /// <exception cref="OutOfMemoryException">
+        /// This exception may be thrown by the function Marshal.AllocHGlobal when there
+        /// is insufficient memory to satisfy the request.
+        /// </exception>
+        private static List<TcpProcessRecord> GetAllTcpv6Connections()
+        {
+            int bufferSize = 0;
+            List<TcpProcessRecord> tcpTableRecords = new List<TcpProcessRecord>();
+
+            // Getting the size of TCP table, that is returned in 'bufferSize' variable.
+            uint result = GetExtendedTcpTable(IntPtr.Zero, ref bufferSize, true, AF_INET6,
+                TcpTableClass.TCP_TABLE_OWNER_PID_ALL);
+
+            // Allocating memory from the unmanaged memory of the process by using the
+            // specified number of bytes in 'bufferSize' variable.
+            IntPtr tcpTableRecordsPtr = Marshal.AllocHGlobal(bufferSize);
+
+            try
+            {
+                // The size of the table returned in 'bufferSize' variable in previous
+                // call must be used in this subsequent call to 'GetExtendedTcpTable'
+                // function in order to successfully retrieve the table.
+                result = GetExtendedTcpTable(tcpTableRecordsPtr, ref bufferSize, true,
+                    AF_INET6, TcpTableClass.TCP_TABLE_OWNER_PID_ALL);
+
+                // Non-zero value represent the function 'GetExtendedTcpTable' failed,
+                // hence empty list is returned to the caller function.
+                if (result != 0)
+                    return new List<TcpProcessRecord>();
+
+                // Marshals data from an unmanaged block of memory to a newly allocated
+                // managed object 'tcpRecordsTable' of type 'MIB_TCPTABLE_OWNER_PID'
+                // to get number of entries of the specified TCP table structure.
+                MIB_TCP6TABLE_OWNER_PID tcpRecordsTable = (MIB_TCP6TABLE_OWNER_PID)
+                                        Marshal.PtrToStructure(tcpTableRecordsPtr,
+                                        typeof(MIB_TCP6TABLE_OWNER_PID));
+                IntPtr tableRowPtr = (IntPtr)((long)tcpTableRecordsPtr +
+                                        Marshal.SizeOf(tcpRecordsTable.dwNumEntries));
+
+                // Reading and parsing the TCP records one by one from the table and
+                // storing them in a list of 'TcpProcessRecord' structure type objects.
+                for (int row = 0; row < tcpRecordsTable.dwNumEntries; row++)
+                {
+                    MIB_TCP6ROW_OWNER_PID tcpRow = (MIB_TCP6ROW_OWNER_PID)Marshal.
+                        PtrToStructure(tableRowPtr, typeof(MIB_TCP6ROW_OWNER_PID));
+                    tcpTableRecords.Add(new TcpProcessRecord(
+                                          new IPAddress(tcpRow.localAddr, tcpRow.localScopeId),
+                                          new IPAddress(tcpRow.remoteAddr, tcpRow.localScopeId),
+                                          BitConverter.ToUInt16(new byte[2] {
+                                              tcpRow.localPort[1],
+                                              tcpRow.localPort[0] }, 0),
+                                          BitConverter.ToUInt16(new byte[2] {
+                                              tcpRow.remotePort[1],
+                                              tcpRow.remotePort[0] }, 0),
+                                          tcpRow.owningPid, tcpRow.state));
+                    tableRowPtr = (IntPtr)((long)tableRowPtr + Marshal.SizeOf(tcpRow));
+                }
+            }
+            catch (OutOfMemoryException outOfMemoryException)
+            {
+                //MessageBox.Show(outOfMemoryException.Message, "Out Of Memory",
+                //    MessageBoxButtons.OK, MessageBoxIcon.Stop);
+            }
+            catch (Exception exception)
+            {
+                //MessageBox.Show(exception.Message, "Exception",
+                //    MessageBoxButtons.OK, MessageBoxIcon.Stop);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(tcpTableRecordsPtr);
+            }
+            return tcpTableRecords != null ? tcpTableRecords.Distinct()
+                .ToList<TcpProcessRecord>() : new List<TcpProcessRecord>();
+        }
+
+        /// <summary>
         /// This function reads and parses the active UDP socket connections available
         /// and stores them in a list.
         /// </summary>
@@ -295,7 +436,7 @@ namespace NetstatCSharp
         /// This exception may be thrown by the function Marshal.AllocHGlobal when there
         /// is insufficient memory to satisfy the request.
         /// </exception>
-        private static List<UdpProcessRecord> GetAllUdpConnections()
+        private static List<UdpProcessRecord> GetAllUdpv4Connections()
         {
             int bufferSize = 0;
             List<UdpProcessRecord> udpTableRecords = new List<UdpProcessRecord>();
@@ -336,6 +477,70 @@ namespace NetstatCSharp
                     MIB_UDPROW_OWNER_PID udpRow = (MIB_UDPROW_OWNER_PID)
                         Marshal.PtrToStructure(tableRowPtr, typeof(MIB_UDPROW_OWNER_PID));
                     udpTableRecords.Add(new UdpProcessRecord(new IPAddress(udpRow.localAddr),
+                        BitConverter.ToUInt16(new byte[2] { udpRow.localPort[1],
+                            udpRow.localPort[0] }, 0), udpRow.owningPid));
+                    tableRowPtr = (IntPtr)((long)tableRowPtr + Marshal.SizeOf(udpRow));
+                }
+            }
+            catch (OutOfMemoryException outOfMemoryException)
+            {
+                //MessageBox.Show(outOfMemoryException.Message, "Out Of Memory",
+                //    MessageBoxButtons.OK, MessageBoxIcon.Stop);
+            }
+            catch (Exception exception)
+            {
+                //MessageBox.Show(exception.Message, "Exception",
+                //    MessageBoxButtons.OK, MessageBoxIcon.Stop);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(udpTableRecordPtr);
+            }
+            return udpTableRecords != null ? udpTableRecords.Distinct()
+                .ToList<UdpProcessRecord>() : new List<UdpProcessRecord>();
+        }
+
+        private static List<UdpProcessRecord> GetAllUdpv6Connections()
+        {
+            int bufferSize = 0;
+            List<UdpProcessRecord> udpTableRecords = new List<UdpProcessRecord>();
+
+            // Getting the size of UDP table, that is returned in 'bufferSize' variable.
+            uint result = GetExtendedUdpTable(IntPtr.Zero, ref bufferSize, true,
+                AF_INET6, UdpTableClass.UDP_TABLE_OWNER_PID);
+
+            // Allocating memory from the unmanaged memory of the process by using the
+            // specified number of bytes in 'bufferSize' variable.
+            IntPtr udpTableRecordPtr = Marshal.AllocHGlobal(bufferSize);
+
+            try
+            {
+                // The size of the table returned in 'bufferSize' variable in previous
+                // call must be used in this subsequent call to 'GetExtendedUdpTable'
+                // function in order to successfully retrieve the table.
+                result = GetExtendedUdpTable(udpTableRecordPtr, ref bufferSize, true,
+                    AF_INET6, UdpTableClass.UDP_TABLE_OWNER_PID);
+
+                // Non-zero value represent the function 'GetExtendedUdpTable' failed,
+                // hence empty list is returned to the caller function.
+                if (result != 0)
+                    return new List<UdpProcessRecord>();
+
+                // Marshals data from an unmanaged block of memory to a newly allocated
+                // managed object 'udpRecordsTable' of type 'MIB_UDPTABLE_OWNER_PID'
+                // to get number of entries of the specified TCP table structure.
+                MIB_UDP6TABLE_OWNER_PID udpRecordsTable = (MIB_UDP6TABLE_OWNER_PID)
+                    Marshal.PtrToStructure(udpTableRecordPtr, typeof(MIB_UDP6TABLE_OWNER_PID));
+                IntPtr tableRowPtr = (IntPtr)((long)udpTableRecordPtr +
+                    Marshal.SizeOf(udpRecordsTable.dwNumEntries));
+
+                // Reading and parsing the UDP records one by one from the table and
+                // storing them in a list of 'UdpProcessRecord' structure type objects.
+                for (int i = 0; i < udpRecordsTable.dwNumEntries; i++)
+                {
+                    MIB_UDP6ROW_OWNER_PID udpRow = (MIB_UDP6ROW_OWNER_PID)
+                        Marshal.PtrToStructure(tableRowPtr, typeof(MIB_UDP6ROW_OWNER_PID));
+                    udpTableRecords.Add(new UdpProcessRecord(new IPAddress(udpRow.localAddr, udpRow.localScopeId),
                         BitConverter.ToUInt16(new byte[2] { udpRow.localPort[1],
                             udpRow.localPort[0] }, 0), udpRow.owningPid));
                     tableRowPtr = (IntPtr)((long)tableRowPtr + Marshal.SizeOf(udpRow));
@@ -486,18 +691,28 @@ namespace NetstatCSharp
 
         static void Main(string[] args)
         {
-            List<UdpProcessRecord> udpConnections = GetAllUdpConnections();
-            List<TcpProcessRecord> tcpConnections = GetAllTcpConnections();
+            List<TcpProcessRecord> tcpv4Connections = GetAllTcpv4Connections();
+            List<TcpProcessRecord> tcpv6Connections = GetAllTcpv6Connections();
+            List<UdpProcessRecord> udpv4Connections = GetAllUdpv4Connections();
+            List<UdpProcessRecord> udpv6Connections = GetAllUdpv6Connections();
 
             Console.WriteLine("\"Protocol\"\t\"LocalAddress\"\t\"LocalPort\"\t\"LocalServiceName\"\t\"RemoteAddress\"\t\"RemotePort\"\t\"RemoteServiceName\"\t\"Status\"\t\"PID\"\t\"Process\"");
 
-            foreach (UdpProcessRecord udpRecord in udpConnections)
-            {
-                Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"\"\t\t\"\"\t\"\"\t{4}\t\"{5}\"", Protocol.udp.ToString(), udpRecord.LocalAddress, udpRecord.LocalPort, GetServiceByPort((short)udpRecord.LocalPort, Protocol.udp), udpRecord.ProcessId, udpRecord.ProcessName);
-            }
-            foreach (TcpProcessRecord tcpRecord in tcpConnections)
+            foreach (TcpProcessRecord tcpRecord in tcpv4Connections)
             {
                 Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"{4}\"\t{5}\t\"{6}\"\t\"{7}\"\t{8}\t\"{9}\"", Protocol.tcp.ToString(), tcpRecord.LocalAddress, tcpRecord.LocalPort, GetServiceByPort((short)tcpRecord.LocalPort, Protocol.tcp), tcpRecord.RemoteAddress, tcpRecord.RemotePort, GetServiceByPort((short)tcpRecord.RemotePort, Protocol.tcp), tcpRecord.State, tcpRecord.ProcessId, tcpRecord.ProcessName);
+            }
+            foreach (TcpProcessRecord tcpv6Record in tcpv6Connections)
+            {
+                Console.WriteLine("\"{0}\"\t\"[{1}]\"\t{2}\t\"{3}\"\t\"[{4}]\"\t{5}\t\"{6}\"\t\"{7}\"\t{8}\t\"{9}\"", Protocol.tcp.ToString(), tcpv6Record.LocalAddress, tcpv6Record.LocalPort, GetServiceByPort((short)tcpv6Record.LocalPort, Protocol.tcp), tcpv6Record.RemoteAddress, tcpv6Record.RemotePort, GetServiceByPort((short)tcpv6Record.RemotePort, Protocol.tcp), tcpv6Record.State, tcpv6Record.ProcessId, tcpv6Record.ProcessName);
+            }
+            foreach (UdpProcessRecord udpRecord in udpv4Connections)
+            {
+                Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"*\"\t*\t\"*\"\t\"\"\t{4}\t\"{5}\"", Protocol.udp.ToString(), udpRecord.LocalAddress, udpRecord.LocalPort, GetServiceByPort((short)udpRecord.LocalPort, Protocol.udp), udpRecord.ProcessId, udpRecord.ProcessName);
+            }
+            foreach (UdpProcessRecord udpv6Record in udpv6Connections)
+            {
+                Console.WriteLine("\"{0}\"\t\"[{1}]\"\t{2}\t\"{3}\"\t\"*\"\t*\t\"*\"\t\"\"\t{4}\t\"{5}\"", Protocol.udp.ToString(), udpv6Record.LocalAddress, udpv6Record.LocalPort, GetServiceByPort((short)udpv6Record.LocalPort, Protocol.udp), udpv6Record.ProcessId, udpv6Record.ProcessName);
             }
         }
     }
