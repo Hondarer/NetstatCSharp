@@ -592,7 +592,7 @@ namespace NetstatCSharp
         /// <summary>
         /// 接続情報の基底機能を提供します。
         /// </summary>
-        public class ProcessRecordBase
+        public abstract class ProcessRecordBase
         {
             /// <summary>
             /// The PID of the process that issued the call to the bind function.
