@@ -714,169 +714,145 @@ namespace NetstatCSharp
         }
 
         /// <summary>
-        /// This function reads and parses the active TCP socket connections available
-        /// and stores them in a list.
+        /// IPv4 の TCP 接続を列挙したリストを返します。
         /// </summary>
-        /// <returns>
-        /// It returns the current set of TCP socket connections which are active.
-        /// </returns>
-        /// <exception cref="OutOfMemoryException">
-        /// This exception may be thrown by the function Marshal.AllocHGlobal when there
-        /// is insufficient memory to satisfy the request.
-        /// </exception>
-        public static List<TcpProcessRecord> GetAllTcpv4Connections()
+        /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
+        /// <returns>IPv4 の TCP 接続のリスト。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
+        /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
+        public static List<TcpProcessRecord> GetAllTcpv4Connections(bool throwException = false)
         {
             int bufferSize = 0;
             List<TcpProcessRecord> tcpTableRecords = new List<TcpProcessRecord>();
 
             // Getting the size of TCP table, that is returned in 'bufferSize' variable.
-            uint result = GetExtendedTcpTable(IntPtr.Zero, ref bufferSize, true, AddressFamily.AF_INET,
-                TcpTableClass.TCP_TABLE_OWNER_PID_ALL);
+            uint result = GetExtendedTcpTable(IntPtr.Zero, ref bufferSize, true, AddressFamily.AF_INET, TcpTableClass.TCP_TABLE_OWNER_PID_ALL);
+            // ここでの result は必ず ERROR_INSUFFICIENT_BUFFER(0x0000007a) なので見ない
 
             // Allocating memory from the unmanaged memory of the process by using the
             // specified number of bytes in 'bufferSize' variable.
-            IntPtr tcpTableRecordsPtr = Marshal.AllocHGlobal(bufferSize);
+            IntPtr tcpTableRecordsPtr = Marshal.AllocCoTaskMem(bufferSize);
 
             try
             {
                 // The size of the table returned in 'bufferSize' variable in previous
                 // call must be used in this subsequent call to 'GetExtendedTcpTable'
                 // function in order to successfully retrieve the table.
-                result = GetExtendedTcpTable(tcpTableRecordsPtr, ref bufferSize, true,
-                    AddressFamily.AF_INET, TcpTableClass.TCP_TABLE_OWNER_PID_ALL);
+                result = GetExtendedTcpTable(tcpTableRecordsPtr, ref bufferSize, true, AddressFamily.AF_INET, TcpTableClass.TCP_TABLE_OWNER_PID_ALL);
 
                 // Non-zero value represent the function 'GetExtendedTcpTable' failed,
                 // hence empty list is returned to the caller function.
                 if (result != 0)
-                    return new List<TcpProcessRecord>();
+                {
+                    if (throwException == true)
+                    {
+                        throw new Win32Exception("GetExtendedTcpTable");
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
 
                 // Marshals data from an unmanaged block of memory to a newly allocated
                 // managed object 'tcpRecordsTable' of type 'MIB_TCPTABLE_OWNER_PID'
                 // to get number of entries of the specified TCP table structure.
-                MIB_TCPTABLE_OWNER_PID tcpRecordsTable = (MIB_TCPTABLE_OWNER_PID)
-                                        Marshal.PtrToStructure(tcpTableRecordsPtr,
-                                        typeof(MIB_TCPTABLE_OWNER_PID));
-                IntPtr tableRowPtr = (IntPtr)((long)tcpTableRecordsPtr +
-                                        Marshal.SizeOf(tcpRecordsTable.dwNumEntries));
+                MIB_TCPTABLE_OWNER_PID tcpRecordsTable = (MIB_TCPTABLE_OWNER_PID)Marshal.PtrToStructure(tcpTableRecordsPtr,typeof(MIB_TCPTABLE_OWNER_PID));
+                IntPtr tableRowPtr = (IntPtr)((long)tcpTableRecordsPtr + Marshal.SizeOf(tcpRecordsTable.dwNumEntries));
 
                 // Reading and parsing the TCP records one by one from the table and
                 // storing them in a list of 'TcpProcessRecord' structure type objects.
                 for (int row = 0; row < tcpRecordsTable.dwNumEntries; row++)
                 {
-                    MIB_TCPROW_OWNER_PID tcpRow = (MIB_TCPROW_OWNER_PID)Marshal.
-                        PtrToStructure(tableRowPtr, typeof(MIB_TCPROW_OWNER_PID));
-                    tcpTableRecords.Add(new TcpProcessRecord(
-                                          new IPAddress(tcpRow.localAddr),
-                                          new IPAddress(tcpRow.remoteAddr),
-                                          BitConverter.ToUInt16(new byte[2] {
-                                              tcpRow.localPort[1],
-                                              tcpRow.localPort[0] }, 0),
-                                          BitConverter.ToUInt16(new byte[2] {
-                                              tcpRow.remotePort[1],
-                                              tcpRow.remotePort[0] }, 0),
-                                          tcpRow.owningPid, tcpRow.state));
+                    MIB_TCPROW_OWNER_PID tcpRow = (MIB_TCPROW_OWNER_PID)Marshal.PtrToStructure(tableRowPtr, typeof(MIB_TCPROW_OWNER_PID));
+                    tcpTableRecords.Add(
+                        new TcpProcessRecord(
+                            new IPAddress(tcpRow.localAddr),
+                            new IPAddress(tcpRow.remoteAddr),
+                            BitConverter.ToUInt16(new byte[2] {tcpRow.localPort[1],tcpRow.localPort[0] }, 0),
+                            BitConverter.ToUInt16(new byte[2] {tcpRow.remotePort[1],tcpRow.remotePort[0] }, 0),
+                            tcpRow.owningPid, 
+                            tcpRow.state));
+
                     tableRowPtr = (IntPtr)((long)tableRowPtr + Marshal.SizeOf(tcpRow));
                 }
             }
-            catch (OutOfMemoryException outOfMemoryException)
-            {
-                //MessageBox.Show(outOfMemoryException.Message, "Out Of Memory",
-                //    MessageBoxButtons.OK, MessageBoxIcon.Stop);
-            }
-            catch (Exception exception)
-            {
-                //MessageBox.Show(exception.Message, "Exception",
-                //    MessageBoxButtons.OK, MessageBoxIcon.Stop);
-            }
             finally
             {
-                Marshal.FreeHGlobal(tcpTableRecordsPtr);
+                Marshal.FreeCoTaskMem(tcpTableRecordsPtr);
             }
-            return tcpTableRecords != null ? tcpTableRecords.Distinct()
-                .ToList<TcpProcessRecord>() : new List<TcpProcessRecord>();
+
+            return tcpTableRecords;
         }
 
         /// <summary>
-        /// This function reads and parses the active TCP socket connections available
-        /// and stores them in a list.
+        /// IPv6 の TCP 接続を列挙したリストを返します。
         /// </summary>
-        /// <returns>
-        /// It returns the current set of TCP socket connections which are active.
-        /// </returns>
-        /// <exception cref="OutOfMemoryException">
-        /// This exception may be thrown by the function Marshal.AllocHGlobal when there
-        /// is insufficient memory to satisfy the request.
-        /// </exception>
-        public static List<TcpProcessRecord> GetAllTcpv6Connections()
+        /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
+        /// <returns>IPv6 の TCP 接続のリスト。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
+        /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
+        public static List<TcpProcessRecord> GetAllTcpv6Connections(bool throwException = false)
         {
             int bufferSize = 0;
             List<TcpProcessRecord> tcpTableRecords = new List<TcpProcessRecord>();
 
             // Getting the size of TCP table, that is returned in 'bufferSize' variable.
-            uint result = GetExtendedTcpTable(IntPtr.Zero, ref bufferSize, true, AddressFamily.AF_INET6,
-                TcpTableClass.TCP_TABLE_OWNER_PID_ALL);
+            uint result = GetExtendedTcpTable(IntPtr.Zero, ref bufferSize, true, AddressFamily.AF_INET6, TcpTableClass.TCP_TABLE_OWNER_PID_ALL);
+            // ここでの result は必ず ERROR_INSUFFICIENT_BUFFER(0x0000007a) なので見ない
 
             // Allocating memory from the unmanaged memory of the process by using the
             // specified number of bytes in 'bufferSize' variable.
-            IntPtr tcpTableRecordsPtr = Marshal.AllocHGlobal(bufferSize);
+            IntPtr tcpTableRecordsPtr = Marshal.AllocCoTaskMem(bufferSize);
 
             try
             {
                 // The size of the table returned in 'bufferSize' variable in previous
                 // call must be used in this subsequent call to 'GetExtendedTcpTable'
                 // function in order to successfully retrieve the table.
-                result = GetExtendedTcpTable(tcpTableRecordsPtr, ref bufferSize, true,
-                    AddressFamily.AF_INET6, TcpTableClass.TCP_TABLE_OWNER_PID_ALL);
+                result = GetExtendedTcpTable(tcpTableRecordsPtr, ref bufferSize, true, AddressFamily.AF_INET6, TcpTableClass.TCP_TABLE_OWNER_PID_ALL);
 
                 // Non-zero value represent the function 'GetExtendedTcpTable' failed,
                 // hence empty list is returned to the caller function.
                 if (result != 0)
-                    return new List<TcpProcessRecord>();
+                {
+                    if (throwException == true)
+                    {
+                        throw new Win32Exception("GetExtendedTcpTable");
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
 
                 // Marshals data from an unmanaged block of memory to a newly allocated
                 // managed object 'tcpRecordsTable' of type 'MIB_TCPTABLE_OWNER_PID'
                 // to get number of entries of the specified TCP table structure.
-                MIB_TCP6TABLE_OWNER_PID tcpRecordsTable = (MIB_TCP6TABLE_OWNER_PID)
-                                        Marshal.PtrToStructure(tcpTableRecordsPtr,
-                                        typeof(MIB_TCP6TABLE_OWNER_PID));
-                IntPtr tableRowPtr = (IntPtr)((long)tcpTableRecordsPtr +
-                                        Marshal.SizeOf(tcpRecordsTable.dwNumEntries));
+                MIB_TCP6TABLE_OWNER_PID tcpRecordsTable = (MIB_TCP6TABLE_OWNER_PID)Marshal.PtrToStructure(tcpTableRecordsPtr,typeof(MIB_TCP6TABLE_OWNER_PID));
+                IntPtr tableRowPtr = (IntPtr)((long)tcpTableRecordsPtr + Marshal.SizeOf(tcpRecordsTable.dwNumEntries));
 
                 // Reading and parsing the TCP records one by one from the table and
                 // storing them in a list of 'TcpProcessRecord' structure type objects.
                 for (int row = 0; row < tcpRecordsTable.dwNumEntries; row++)
                 {
-                    MIB_TCP6ROW_OWNER_PID tcpRow = (MIB_TCP6ROW_OWNER_PID)Marshal.
-                        PtrToStructure(tableRowPtr, typeof(MIB_TCP6ROW_OWNER_PID));
-                    tcpTableRecords.Add(new TcpProcessRecord(
-                                          new IPAddress(tcpRow.localAddr, tcpRow.localScopeId),
-                                          new IPAddress(tcpRow.remoteAddr, tcpRow.localScopeId),
-                                          BitConverter.ToUInt16(new byte[2] {
-                                              tcpRow.localPort[1],
-                                              tcpRow.localPort[0] }, 0),
-                                          BitConverter.ToUInt16(new byte[2] {
-                                              tcpRow.remotePort[1],
-                                              tcpRow.remotePort[0] }, 0),
-                                          tcpRow.owningPid, tcpRow.state));
+                    MIB_TCP6ROW_OWNER_PID tcpRow = (MIB_TCP6ROW_OWNER_PID)Marshal.PtrToStructure(tableRowPtr, typeof(MIB_TCP6ROW_OWNER_PID));
+                    tcpTableRecords.Add(
+                        new TcpProcessRecord(
+                            new IPAddress(tcpRow.localAddr, tcpRow.localScopeId),
+                            new IPAddress(tcpRow.remoteAddr, tcpRow.localScopeId),
+                            BitConverter.ToUInt16(new byte[2] {tcpRow.localPort[1],tcpRow.localPort[0] }, 0),
+                            BitConverter.ToUInt16(new byte[2] {tcpRow.remotePort[1],tcpRow.remotePort[0] }, 0),
+                            tcpRow.owningPid, 
+                            tcpRow.state));
+
                     tableRowPtr = (IntPtr)((long)tableRowPtr + Marshal.SizeOf(tcpRow));
                 }
             }
-            catch (OutOfMemoryException outOfMemoryException)
-            {
-                //MessageBox.Show(outOfMemoryException.Message, "Out Of Memory",
-                //    MessageBoxButtons.OK, MessageBoxIcon.Stop);
-            }
-            catch (Exception exception)
-            {
-                //MessageBox.Show(exception.Message, "Exception",
-                //    MessageBoxButtons.OK, MessageBoxIcon.Stop);
-            }
             finally
             {
-                Marshal.FreeHGlobal(tcpTableRecordsPtr);
+                Marshal.FreeCoTaskMem(tcpTableRecordsPtr);
             }
-            return tcpTableRecords != null ? tcpTableRecords.Distinct()
-                .ToList<TcpProcessRecord>() : new List<TcpProcessRecord>();
+
+            return tcpTableRecords;
         }
 
         /// <summary>
@@ -1000,11 +976,9 @@ namespace NetstatCSharp
                     MIB_UDP6ROW_OWNER_PID udpRow = (MIB_UDP6ROW_OWNER_PID)Marshal.PtrToStructure(tableRowPtr, typeof(MIB_UDP6ROW_OWNER_PID));
                     udpTableRecords.Add(
                         new UdpProcessRecord(
-                            new IPAddress(
-                                udpRow.localAddr, 
-                                udpRow.localScopeId),
-                                BitConverter.ToUInt16(new byte[] { udpRow.localPort[1], udpRow.localPort[0] }, 0),
-                                udpRow.owningPid));
+                            new IPAddress(udpRow.localAddr, udpRow.localScopeId),
+                            BitConverter.ToUInt16(new byte[] { udpRow.localPort[1], udpRow.localPort[0] }, 0),
+                            udpRow.owningPid));
 
                     tableRowPtr = (IntPtr)((long)tableRowPtr + Marshal.SizeOf(udpRow));
                 }
