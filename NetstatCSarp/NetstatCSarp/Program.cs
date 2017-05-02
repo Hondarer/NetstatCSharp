@@ -9,8 +9,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Linq;
 
 namespace NetstatCSharp
 {
@@ -224,7 +222,7 @@ namespace NetstatCSharp
         /// (PID) associated with connection.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
-        public struct MIB_TCPROW_OWNER_PID
+        private struct MIB_TCPROW_OWNER_PID
         {
             /// <summary>
             /// The state of the TCP connection.
@@ -265,7 +263,7 @@ namespace NetstatCSharp
         /// (PID) associated with connection.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
-        public struct MIB_TCP6ROW_OWNER_PID
+        private struct MIB_TCP6ROW_OWNER_PID
         {
             /// <summary>
             /// The IPv6 address for the local endpoint of the TCP connection on the local computer.
@@ -318,7 +316,7 @@ namespace NetstatCSharp
         /// (PID) that issued the call to the bind function for the UDP endpoint.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
-        public struct MIB_UDPROW_OWNER_PID
+        private struct MIB_UDPROW_OWNER_PID
         {
             /// <summary>
             /// The IPv4 address of the UDP endpoint on the local computer.
@@ -343,7 +341,7 @@ namespace NetstatCSharp
         /// (PID) that issued the call to the bind function for the UDP endpoint.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
-        public struct MIB_UDP6ROW_OWNER_PID
+        private struct MIB_UDP6ROW_OWNER_PID
         {
             /// <summary>
             /// The IPv6 address of the UDP endpoint on the local computer.
@@ -373,7 +371,7 @@ namespace NetstatCSharp
         /// are context bound to these PIDs.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
-        public struct MIB_TCPTABLE_OWNER_PID
+        private struct MIB_TCPTABLE_OWNER_PID
         {
             /// <summary>
             /// The number of <see cref="MIB_TCPROW_OWNER_PID"/> elements in the table.
@@ -392,7 +390,7 @@ namespace NetstatCSharp
         /// are context bound to these PIDs.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
-        public struct MIB_TCP6TABLE_OWNER_PID
+        private struct MIB_TCP6TABLE_OWNER_PID
         {
             /// <summary>
             /// The number of <see cref="MIB_TCP6ROW_OWNER_PID"/> elements in the table.
@@ -412,7 +410,7 @@ namespace NetstatCSharp
         /// the call to the bind function for each UDP endpoint.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
-        public struct MIB_UDPTABLE_OWNER_PID
+        private struct MIB_UDPTABLE_OWNER_PID
         {
             /// <summary>
             /// The number of <see cref="MIB_UDPROW_OWNER_PID"/> elements in table.
@@ -432,7 +430,7 @@ namespace NetstatCSharp
         /// the call to the bind function for each UDP endpoint.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
-        public struct MIB_UDP6TABLE_OWNER_PID
+        private struct MIB_UDP6TABLE_OWNER_PID
         {
             /// <summary>
             /// The number of <see cref="MIB_UDP6ROW_OWNER_PID"/> elements in table.
@@ -534,7 +532,7 @@ namespace NetstatCSharp
         /// If the function fails, the return value is one of the following error codes.
         /// </returns>
         [DllImport("iphlpapi.dll")]
-        public static extern uint GetExtendedTcpTable(IntPtr pTcpTable, ref int pdwSize, bool bOrder, AddressFamily ulAf, TcpTableClass tableClass, uint reserved = 0);
+        private static extern uint GetExtendedTcpTable(IntPtr pTcpTable, ref int pdwSize, bool bOrder, AddressFamily ulAf, TcpTableClass tableClass, uint reserved = 0);
 
         /// <summary>
         /// Retrieves a table that contains a list of UDP endpoints available to the application.
@@ -550,7 +548,7 @@ namespace NetstatCSharp
         /// If the function fails, the return value is one of the following error codes.
         /// </returns>
         [DllImport("iphlpapi.dll")]
-        public static extern uint GetExtendedUdpTable(IntPtr pUdpTable, ref int pdwSize, bool bOrder, AddressFamily ulAf, UdpTableClass tableClass, uint reserved = 0);
+        private static extern uint GetExtendedUdpTable(IntPtr pUdpTable, ref int pdwSize, bool bOrder, AddressFamily ulAf, UdpTableClass tableClass, uint reserved = 0);
 
         /// <summary>
         /// Initiates use of the Winsock DLL by a process.
