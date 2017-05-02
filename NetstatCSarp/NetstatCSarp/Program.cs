@@ -7,9 +7,10 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Linq;
 
 namespace NetstatCSharp
 {
@@ -590,10 +591,66 @@ namespace NetstatCSharp
         #endregion
 
         /// <summary>
+        /// 接続情報の基底機能を提供します。
+        /// </summary>
+        public class ProcessRecordBase
+        {
+            /// <summary>
+            /// The PID of the process that issued the call to the bind function.
+            /// </summary>
+            public uint ProcessId { get; private set; }
+
+            /// <summary>
+            /// A process name that issued the call to the bind function for the UDP endpoint.
+            /// </summary>
+            public string ProcessName { get; private set; }
+
+            /// <summary>
+            /// PID を設定します。
+            /// </summary>
+            /// <param name="processId">PID。</param>
+            /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。</param>
+            protected void SetProcessId(uint processId, Dictionary<uint, string> pidToProcessName)
+            {
+                ProcessId = processId;
+                if (ProcessId != 0)
+                {
+                    try
+                    {
+                        if (pidToProcessName != null)
+                        {
+                            if (pidToProcessName.ContainsKey(ProcessId) == true)
+                            {
+                                ProcessName = pidToProcessName[ProcessId];
+                            }
+                            else
+                            {
+                                ProcessName = Process.GetProcessById((int)ProcessId).ProcessName;
+                                pidToProcessName.Add(ProcessId, ProcessName);
+                            }
+                        }
+                        else
+                        {
+                            ProcessName = Process.GetProcessById((int)ProcessId).ProcessName;
+                        }
+                    }
+                    catch
+                    {
+                        ProcessName = string.Empty;
+                    }
+                }
+                else
+                {
+                    ProcessName = string.Empty;
+                }
+            }
+        }
+
+        /// <summary>
         /// This class provides access an TCP connection addresses and ports and its
         /// associated Process IDs and names.
         /// </summary>
-        public class TcpProcessRecord
+        public class TcpProcessRecord : ProcessRecordBase
         {
             /// <summary>
             /// The local address for the TCP connection on the local computer.
@@ -621,16 +678,6 @@ namespace NetstatCSharp
             public MibTcpState State { get; private set; }
 
             /// <summary>
-            /// The PID of the process that issued a context bind for this TCP connection.
-            /// </summary>
-            public uint ProcessId { get; private set; }
-
-            /// <summary>
-            /// A process name that issued a context bind for this TCP connection.
-            /// </summary>
-            public string ProcessName { get; private set; }
-
-            /// <summary>
             /// <see cref="TcpProcessRecord"/> の新しいインスタンスを初期化します。
             /// </summary>
             /// <param name="localIp">The local address for the TCP connection on the local computer.</param>
@@ -639,20 +686,15 @@ namespace NetstatCSharp
             /// <param name="remotePort">The remote port number for the TCP connection on the remote computer.</param>
             /// <param name="pId">The PID of the process that issued a context bind for this TCP connection.</param>
             /// <param name="state">The state of the TCP connection.</param>
-            public TcpProcessRecord(IPAddress localIp, IPAddress remoteIp, ushort localPort, ushort remotePort, uint pId, MibTcpState state)
+            /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
+            public TcpProcessRecord(IPAddress localIp, IPAddress remoteIp, ushort localPort, ushort remotePort, uint pId, MibTcpState state, Dictionary<uint, string> pidToProcessName = null)
             {
                 LocalAddress = localIp;
                 RemoteAddress = remoteIp;
                 LocalPort = localPort;
                 RemotePort = remotePort;
                 State = state;
-                ProcessId = pId;
-
-                // Getting the process name associated with a process id.
-                if (Process.GetProcesses().Any(process => process.Id == pId))
-                {
-                    ProcessName = Process.GetProcessById((int)ProcessId).ProcessName;
-                }
+                SetProcessId(pId, pidToProcessName);
             }
         }
 
@@ -660,7 +702,7 @@ namespace NetstatCSharp
         /// This class provides access an UDP endpoint addresses and ports and its
         /// associated Process IDs and names.
         /// </summary>
-        public class UdpProcessRecord
+        public class UdpProcessRecord : ProcessRecordBase
         {
             /// <summary>
             /// The address of the UDP endpoint on the local computer.
@@ -673,34 +715,29 @@ namespace NetstatCSharp
             public uint LocalPort { get; private set; }
 
             /// <summary>
-            /// The PID of the process that issued the call to the bind function for the UDP endpoint.
-            /// </summary>
-            public uint ProcessId { get; private set; }
-
-            /// <summary>
-            /// A process name that issued the call to the bind function for the UDP endpoint.
-            /// </summary>
-            public string ProcessName { get; private set; }
-
-            /// <summary>
             /// <see cref="UdpProcessRecord"/> の新しいインスタンスを初期化します。
             /// </summary>
             /// <param name="localAddress">The address of the UDP endpoint on the local computer.</param>
             /// <param name="localPort">The port number of the UDP endpoint on the local computer.</param>
             /// <param name="pId">The PID of the process that issued the call to the bind function for the UDP endpoint.</param>
-            public UdpProcessRecord(IPAddress localAddress, uint localPort, uint pId)
+            /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
+            public UdpProcessRecord(IPAddress localAddress, uint localPort, uint pId, Dictionary<uint, string> pidToProcessName = null)
             {
                 LocalAddress = localAddress;
                 LocalPort = localPort;
-                ProcessId = pId;
-
-                // Getting the process name associated with a process id.
-                if (Process.GetProcesses().Any(process => process.Id == pId))
-                {
-                    ProcessName = Process.GetProcessById((int)ProcessId).ProcessName;
-                }
+                SetProcessId(pId, pidToProcessName);
             }
         }
+
+        /// <summary>
+        /// サービス名とプロトコルから、ポート番号を得るディクショナリを保持します。
+        /// </summary>
+        private static Dictionary<Protocol, Dictionary<short, string>> portToServiceName = new Dictionary<Protocol, Dictionary<short, string>>();
+
+        /// <summary>
+        /// サービス名とプロトコルから、ポート番号を得るディクショナリを保持します。
+        /// </summary>
+        private static Dictionary<Protocol, Dictionary<string, short>> serviceNameToPort = new Dictionary<Protocol, Dictionary<string, short>>();
 
         /// <summary>
         /// ネットワーク バイト オーダーのワードを生成します。
@@ -716,10 +753,11 @@ namespace NetstatCSharp
         /// <summary>
         /// IPv4 の TCP 接続を列挙したリストを返します。
         /// </summary>
+        /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
         /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
         /// <returns>IPv4 の TCP 接続のリスト。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
         /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
-        public static List<TcpProcessRecord> GetAllTcpv4Connections(bool throwException = false)
+        public static List<TcpProcessRecord> GetAllTcpv4Connections(Dictionary<uint, string> pidToProcessName = null, bool throwException = false)
         {
             int bufferSize = 0;
             List<TcpProcessRecord> tcpTableRecords = new List<TcpProcessRecord>();
@@ -756,7 +794,7 @@ namespace NetstatCSharp
                 // Marshals data from an unmanaged block of memory to a newly allocated
                 // managed object 'tcpRecordsTable' of type 'MIB_TCPTABLE_OWNER_PID'
                 // to get number of entries of the specified TCP table structure.
-                MIB_TCPTABLE_OWNER_PID tcpRecordsTable = (MIB_TCPTABLE_OWNER_PID)Marshal.PtrToStructure(tcpTableRecordsPtr,typeof(MIB_TCPTABLE_OWNER_PID));
+                MIB_TCPTABLE_OWNER_PID tcpRecordsTable = (MIB_TCPTABLE_OWNER_PID)Marshal.PtrToStructure(tcpTableRecordsPtr, typeof(MIB_TCPTABLE_OWNER_PID));
                 IntPtr tableRowPtr = (IntPtr)((long)tcpTableRecordsPtr + Marshal.SizeOf(tcpRecordsTable.dwNumEntries));
 
                 // Reading and parsing the TCP records one by one from the table and
@@ -768,10 +806,11 @@ namespace NetstatCSharp
                         new TcpProcessRecord(
                             new IPAddress(tcpRow.localAddr),
                             new IPAddress(tcpRow.remoteAddr),
-                            BitConverter.ToUInt16(new byte[2] {tcpRow.localPort[1],tcpRow.localPort[0] }, 0),
-                            BitConverter.ToUInt16(new byte[2] {tcpRow.remotePort[1],tcpRow.remotePort[0] }, 0),
-                            tcpRow.owningPid, 
-                            tcpRow.state));
+                            BitConverter.ToUInt16(new byte[2] { tcpRow.localPort[1], tcpRow.localPort[0] }, 0),
+                            BitConverter.ToUInt16(new byte[2] { tcpRow.remotePort[1], tcpRow.remotePort[0] }, 0),
+                            tcpRow.owningPid,
+                            tcpRow.state,
+                            pidToProcessName));
 
                     tableRowPtr = (IntPtr)((long)tableRowPtr + Marshal.SizeOf(tcpRow));
                 }
@@ -787,10 +826,11 @@ namespace NetstatCSharp
         /// <summary>
         /// IPv6 の TCP 接続を列挙したリストを返します。
         /// </summary>
+        /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
         /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
         /// <returns>IPv6 の TCP 接続のリスト。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
         /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
-        public static List<TcpProcessRecord> GetAllTcpv6Connections(bool throwException = false)
+        public static List<TcpProcessRecord> GetAllTcpv6Connections(Dictionary<uint, string> pidToProcessName = null, bool throwException = false)
         {
             int bufferSize = 0;
             List<TcpProcessRecord> tcpTableRecords = new List<TcpProcessRecord>();
@@ -827,7 +867,7 @@ namespace NetstatCSharp
                 // Marshals data from an unmanaged block of memory to a newly allocated
                 // managed object 'tcpRecordsTable' of type 'MIB_TCPTABLE_OWNER_PID'
                 // to get number of entries of the specified TCP table structure.
-                MIB_TCP6TABLE_OWNER_PID tcpRecordsTable = (MIB_TCP6TABLE_OWNER_PID)Marshal.PtrToStructure(tcpTableRecordsPtr,typeof(MIB_TCP6TABLE_OWNER_PID));
+                MIB_TCP6TABLE_OWNER_PID tcpRecordsTable = (MIB_TCP6TABLE_OWNER_PID)Marshal.PtrToStructure(tcpTableRecordsPtr, typeof(MIB_TCP6TABLE_OWNER_PID));
                 IntPtr tableRowPtr = (IntPtr)((long)tcpTableRecordsPtr + Marshal.SizeOf(tcpRecordsTable.dwNumEntries));
 
                 // Reading and parsing the TCP records one by one from the table and
@@ -839,10 +879,11 @@ namespace NetstatCSharp
                         new TcpProcessRecord(
                             new IPAddress(tcpRow.localAddr, tcpRow.localScopeId),
                             new IPAddress(tcpRow.remoteAddr, tcpRow.localScopeId),
-                            BitConverter.ToUInt16(new byte[2] {tcpRow.localPort[1],tcpRow.localPort[0] }, 0),
-                            BitConverter.ToUInt16(new byte[2] {tcpRow.remotePort[1],tcpRow.remotePort[0] }, 0),
-                            tcpRow.owningPid, 
-                            tcpRow.state));
+                            BitConverter.ToUInt16(new byte[2] { tcpRow.localPort[1], tcpRow.localPort[0] }, 0),
+                            BitConverter.ToUInt16(new byte[2] { tcpRow.remotePort[1], tcpRow.remotePort[0] }, 0),
+                            tcpRow.owningPid,
+                            tcpRow.state,
+                            pidToProcessName));
 
                     tableRowPtr = (IntPtr)((long)tableRowPtr + Marshal.SizeOf(tcpRow));
                 }
@@ -858,10 +899,11 @@ namespace NetstatCSharp
         /// <summary>
         /// IPv4 の UDP エンドポイントを列挙したリストを返します。
         /// </summary>
+        /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
         /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
         /// <returns>IPv4 の UDP エンドポイントのリスト。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
         /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
-        public static List<UdpProcessRecord> GetAllUdpv4Connections(bool throwException = false)
+        public static List<UdpProcessRecord> GetAllUdpv4Connections(Dictionary<uint, string> pidToProcessName = null, bool throwException = false)
         {
             int bufferSize = 0;
             List<UdpProcessRecord> udpTableRecords = new List<UdpProcessRecord>();
@@ -909,8 +951,9 @@ namespace NetstatCSharp
                     udpTableRecords.Add(
                         new UdpProcessRecord(
                             new IPAddress(udpRow.localAddr),
-                            BitConverter.ToUInt16(new byte[2] { udpRow.localPort[1],udpRow.localPort[0] }, 0), 
-                            udpRow.owningPid));
+                            BitConverter.ToUInt16(new byte[2] { udpRow.localPort[1], udpRow.localPort[0] }, 0),
+                            udpRow.owningPid,
+                            pidToProcessName));
 
                     tableRowPtr = (IntPtr)((long)tableRowPtr + Marshal.SizeOf(udpRow));
                 }
@@ -926,10 +969,11 @@ namespace NetstatCSharp
         /// <summary>
         /// IPv6 の UDP エンドポイントを列挙したリストを返します。
         /// </summary>
+        /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
         /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
         /// <returns>IPv6 の UDP エンドポイントのリスト。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
         /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
-        public static List<UdpProcessRecord> GetAllUdpv6Connections(bool throwException = false)
+        public static List<UdpProcessRecord> GetAllUdpv6Connections(Dictionary<uint, string> pidToProcessName = null, bool throwException = false)
         {
             int bufferSize = 0;
             List<UdpProcessRecord> udpTableRecords = new List<UdpProcessRecord>();
@@ -978,7 +1022,8 @@ namespace NetstatCSharp
                         new UdpProcessRecord(
                             new IPAddress(udpRow.localAddr, udpRow.localScopeId),
                             BitConverter.ToUInt16(new byte[] { udpRow.localPort[1], udpRow.localPort[0] }, 0),
-                            udpRow.owningPid));
+                            udpRow.owningPid,
+                            pidToProcessName));
 
                     tableRowPtr = (IntPtr)((long)tableRowPtr + Marshal.SizeOf(udpRow));
                 }
@@ -1001,6 +1046,11 @@ namespace NetstatCSharp
         /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
         public static string GetServiceByPort(short port, Protocol protocol, bool throwException = false)
         {
+            if ((portToServiceName.ContainsKey(protocol) == true) &&
+               (portToServiceName[protocol].ContainsKey(port) == true))
+            {
+                return portToServiceName[protocol][port];
+            }
 
             WSAData wsaData = new WSAData();
             if (WSAStartup(MakeWord(WINSOCK_MAJOR_VERSION, WINSOCK_MINOR_VERSION), ref wsaData) != 0)
@@ -1030,7 +1080,14 @@ namespace NetstatCSharp
                     }
                 }
                 Servent srvent = (Servent)Marshal.PtrToStructure(result, typeof(Servent));
-                return srvent.s_name;
+
+                if (portToServiceName.ContainsKey(protocol) == false)
+                {
+                    portToServiceName.Add(protocol, new Dictionary<short, string>());
+                }
+                portToServiceName[protocol].Add(port, srvent.s_name);
+
+                return portToServiceName[protocol][port];
             }
             finally
             {
@@ -1048,6 +1105,12 @@ namespace NetstatCSharp
         /// <exception cref="Win32Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
         public static short GetServiceByName(string service, Protocol protocol, bool throwException = false)
         {
+            if ((serviceNameToPort.ContainsKey(protocol) == true) &&
+                (serviceNameToPort[protocol].ContainsKey(service) == true))
+            {
+                return serviceNameToPort[protocol][service];
+            }
+
             WSAData wsaData = new WSAData();
             if (WSAStartup(MakeWord(WINSOCK_MAJOR_VERSION, WINSOCK_MINOR_VERSION), ref wsaData) != 0)
             {
@@ -1075,7 +1138,14 @@ namespace NetstatCSharp
                     }
                 }
                 Servent srvent = (Servent)Marshal.PtrToStructure(result, typeof(Servent));
-                return Convert.ToInt16(IPAddress.NetworkToHostOrder(srvent.s_port));
+
+                if (serviceNameToPort.ContainsKey(protocol) == false)
+                {
+                    serviceNameToPort.Add(protocol, new Dictionary<string, short>());
+                }
+                serviceNameToPort[protocol].Add(service, Convert.ToInt16(IPAddress.NetworkToHostOrder(srvent.s_port)));
+
+                return serviceNameToPort[protocol][service];
             }
             finally
             {
@@ -1089,10 +1159,13 @@ namespace NetstatCSharp
         /// <param name="args"></param>
         static void Main(string[] args)
         {
-            List<TcpProcessRecord> tcpv4Connections = GetAllTcpv4Connections();
-            List<TcpProcessRecord> tcpv6Connections = GetAllTcpv6Connections();
-            List<UdpProcessRecord> udpv4Connections = GetAllUdpv4Connections();
-            List<UdpProcessRecord> udpv6Connections = GetAllUdpv6Connections();
+            // キャッシュは取得の都度生成すること。PID の再利用が発生すると、エントリが不正に取得されるため。
+            Dictionary<uint, string> pidToProcessNameCache = new Dictionary<uint, string>();
+
+            List<TcpProcessRecord> tcpv4Connections = GetAllTcpv4Connections(pidToProcessNameCache);
+            List<TcpProcessRecord> tcpv6Connections = GetAllTcpv6Connections(pidToProcessNameCache);
+            List<UdpProcessRecord> udpv4Connections = GetAllUdpv4Connections(pidToProcessNameCache);
+            List<UdpProcessRecord> udpv6Connections = GetAllUdpv6Connections(pidToProcessNameCache);
 
             Console.WriteLine("\"Protocol\"\t\"LocalAddress\"\t\"LocalPort\"\t\"LocalServiceName\"\t\"RemoteAddress\"\t\"RemotePort\"\t\"RemoteServiceName\"\t\"Status\"\t\"PID\"\t\"Process\"");
 
