@@ -738,17 +738,6 @@ namespace NetstatCSharp
         private static Dictionary<Protocol, Dictionary<string, short>> serviceNameToPort = new Dictionary<Protocol, Dictionary<string, short>>();
 
         /// <summary>
-        /// ネットワーク バイト オーダーのワードを生成します。
-        /// </summary>
-        /// <param name="low">下位バイト。</param>
-        /// <param name="high">上位バイト。</param>
-        /// <returns>ネットワーク バイト オーダーのワード。</returns>
-        private static ushort MakeWord(byte low, byte high)
-        {
-            return (ushort)((ushort)(high << 8) | low);
-        }
-
-        /// <summary>
         /// IPv4 の TCP 接続を列挙したリストを返します。
         /// </summary>
         /// <param name="pidToProcessName">PID と プロセス名の関係をキャッシュするディクショナリを指定します。<c>null</c> の場合はキャッシュを行いません。省略可能です。既定値は <c>null</c> です。</param>
@@ -1051,7 +1040,8 @@ namespace NetstatCSharp
             }
 
             WSAData wsaData = new WSAData();
-            if (WSAStartup(MakeWord(WINSOCK_MAJOR_VERSION, WINSOCK_MINOR_VERSION), ref wsaData) != 0)
+
+            if (WSAStartup(BitConverter.ToUInt16(new byte[] { WINSOCK_MAJOR_VERSION, WINSOCK_MINOR_VERSION }, 0), ref wsaData) != 0)
             {
                 if (throwException == true)
                 {
@@ -1110,7 +1100,7 @@ namespace NetstatCSharp
             }
 
             WSAData wsaData = new WSAData();
-            if (WSAStartup(MakeWord(WINSOCK_MAJOR_VERSION, WINSOCK_MINOR_VERSION), ref wsaData) != 0)
+            if (WSAStartup(BitConverter.ToUInt16(new byte[] { WINSOCK_MAJOR_VERSION, WINSOCK_MINOR_VERSION }, 0), ref wsaData) != 0)
             {
                 if (throwException == true)
                 {
