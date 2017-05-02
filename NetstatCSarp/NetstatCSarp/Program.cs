@@ -775,7 +775,7 @@ namespace NetstatCSharp
                     }
                     else
                     {
-                        return null;
+                        return tcpTableRecords;
                     }
                 }
 
@@ -848,7 +848,7 @@ namespace NetstatCSharp
                     }
                     else
                     {
-                        return null;
+                        return tcpTableRecords;
                     }
                 }
 
@@ -921,7 +921,7 @@ namespace NetstatCSharp
                     }
                     else
                     {
-                        return null;
+                        return udpTableRecords;
                     }
                 }
 
@@ -991,7 +991,7 @@ namespace NetstatCSharp
                     }
                     else
                     {
-                        return null;
+                        return udpTableRecords;
                     }
                 }
 
@@ -1151,40 +1151,21 @@ namespace NetstatCSharp
             // キャッシュは取得の都度生成すること。PID の再利用が発生すると、エントリが不正に取得されるため。
             Dictionary<uint, string> pidToProcessNameCache = new Dictionary<uint, string>();
 
-            List<TcpProcessRecord> tcpv4Connections = GetAllTcpv4Connections(pidToProcessNameCache);
-            List<TcpProcessRecord> tcpv6Connections = GetAllTcpv6Connections(pidToProcessNameCache);
-            List<UdpProcessRecord> udpv4Connections = GetAllUdpv4Connections(pidToProcessNameCache);
-            List<UdpProcessRecord> udpv6Connections = GetAllUdpv6Connections(pidToProcessNameCache);
+            List<TcpProcessRecord> tcpConnections = GetAllTcpv4Connections(pidToProcessNameCache);
+            tcpConnections.AddRange(GetAllTcpv6Connections(pidToProcessNameCache));
+
+            List<UdpProcessRecord> udpConnections = GetAllUdpv4Connections(pidToProcessNameCache);
+            udpConnections.AddRange(GetAllUdpv6Connections(pidToProcessNameCache));
 
             Console.WriteLine("\"Protocol\"\t\"LocalAddress\"\t\"LocalPort\"\t\"LocalServiceName\"\t\"RemoteAddress\"\t\"RemotePort\"\t\"RemoteServiceName\"\t\"Status\"\t\"PID\"\t\"Process\"");
 
-            if (tcpv4Connections != null)
+            foreach (TcpProcessRecord tcpRecord in tcpConnections)
             {
-                foreach (TcpProcessRecord tcpRecord in tcpv4Connections)
-                {
-                    Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"{4}\"\t{5}\t\"{6}\"\t\"{7}\"\t{8}\t\"{9}\"", Protocol.tcp.ToString(), tcpRecord.LocalAddress, tcpRecord.LocalPort, GetServiceByPort((short)tcpRecord.LocalPort, Protocol.tcp), tcpRecord.RemoteAddress, tcpRecord.RemotePort, GetServiceByPort((short)tcpRecord.RemotePort, Protocol.tcp), tcpRecord.State, tcpRecord.ProcessId, tcpRecord.ProcessName);
-                }
+                Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"{4}\"\t{5}\t\"{6}\"\t\"{7}\"\t{8}\t\"{9}\"", Protocol.tcp.ToString(), tcpRecord.LocalAddress, tcpRecord.LocalPort, GetServiceByPort((short)tcpRecord.LocalPort, Protocol.tcp), tcpRecord.RemoteAddress, tcpRecord.RemotePort, GetServiceByPort((short)tcpRecord.RemotePort, Protocol.tcp), tcpRecord.State, tcpRecord.ProcessId, tcpRecord.ProcessName);
             }
-            if (tcpv6Connections != null)
+            foreach (UdpProcessRecord udpRecord in udpConnections)
             {
-                foreach (TcpProcessRecord tcpv6Record in tcpv6Connections)
-                {
-                    Console.WriteLine("\"{0}\"\t\"[{1}]\"\t{2}\t\"{3}\"\t\"[{4}]\"\t{5}\t\"{6}\"\t\"{7}\"\t{8}\t\"{9}\"", Protocol.tcp.ToString(), tcpv6Record.LocalAddress, tcpv6Record.LocalPort, GetServiceByPort((short)tcpv6Record.LocalPort, Protocol.tcp), tcpv6Record.RemoteAddress, tcpv6Record.RemotePort, GetServiceByPort((short)tcpv6Record.RemotePort, Protocol.tcp), tcpv6Record.State, tcpv6Record.ProcessId, tcpv6Record.ProcessName);
-                }
-            }
-            if (udpv4Connections != null)
-            {
-                foreach (UdpProcessRecord udpRecord in udpv4Connections)
-                {
-                    Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"*\"\t*\t\"*\"\t\"\"\t{4}\t\"{5}\"", Protocol.udp.ToString(), udpRecord.LocalAddress, udpRecord.LocalPort, GetServiceByPort((short)udpRecord.LocalPort, Protocol.udp), udpRecord.ProcessId, udpRecord.ProcessName);
-                }
-            }
-            if (udpv6Connections != null)
-            {
-                foreach (UdpProcessRecord udpv6Record in udpv6Connections)
-                {
-                    Console.WriteLine("\"{0}\"\t\"[{1}]\"\t{2}\t\"{3}\"\t\"*\"\t*\t\"*\"\t\"\"\t{4}\t\"{5}\"", Protocol.udp.ToString(), udpv6Record.LocalAddress, udpv6Record.LocalPort, GetServiceByPort((short)udpv6Record.LocalPort, Protocol.udp), udpv6Record.ProcessId, udpv6Record.ProcessName);
-                }
+                Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"*\"\t*\t\"*\"\t\"\"\t{4}\t\"{5}\"", Protocol.udp.ToString(), udpRecord.LocalAddress, udpRecord.LocalPort, GetServiceByPort((short)udpRecord.LocalPort, Protocol.udp), udpRecord.ProcessId, udpRecord.ProcessName);
             }
         }
     }
