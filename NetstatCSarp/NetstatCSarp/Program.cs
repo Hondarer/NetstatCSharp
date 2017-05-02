@@ -806,8 +806,8 @@ namespace NetstatCSharp
                         new TcpProcessRecord(
                             new IPAddress(tcpRow.localAddr),
                             new IPAddress(tcpRow.remoteAddr),
-                            BitConverter.ToUInt16(new byte[2] { tcpRow.localPort[1], tcpRow.localPort[0] }, 0),
-                            BitConverter.ToUInt16(new byte[2] { tcpRow.remotePort[1], tcpRow.remotePort[0] }, 0),
+                            BitConverter.ToUInt16(new byte[] { tcpRow.localPort[1], tcpRow.localPort[0] }, 0),
+                            BitConverter.ToUInt16(new byte[] { tcpRow.remotePort[1], tcpRow.remotePort[0] }, 0),
                             tcpRow.owningPid,
                             tcpRow.state,
                             pidToProcessName));
@@ -879,8 +879,8 @@ namespace NetstatCSharp
                         new TcpProcessRecord(
                             new IPAddress(tcpRow.localAddr, tcpRow.localScopeId),
                             new IPAddress(tcpRow.remoteAddr, tcpRow.localScopeId),
-                            BitConverter.ToUInt16(new byte[2] { tcpRow.localPort[1], tcpRow.localPort[0] }, 0),
-                            BitConverter.ToUInt16(new byte[2] { tcpRow.remotePort[1], tcpRow.remotePort[0] }, 0),
+                            BitConverter.ToUInt16(new byte[] { tcpRow.localPort[1], tcpRow.localPort[0] }, 0),
+                            BitConverter.ToUInt16(new byte[] { tcpRow.remotePort[1], tcpRow.remotePort[0] }, 0),
                             tcpRow.owningPid,
                             tcpRow.state,
                             pidToProcessName));
@@ -951,7 +951,7 @@ namespace NetstatCSharp
                     udpTableRecords.Add(
                         new UdpProcessRecord(
                             new IPAddress(udpRow.localAddr),
-                            BitConverter.ToUInt16(new byte[2] { udpRow.localPort[1], udpRow.localPort[0] }, 0),
+                            BitConverter.ToUInt16(new byte[] { udpRow.localPort[1], udpRow.localPort[0] }, 0),
                             udpRow.owningPid,
                             pidToProcessName));
 
