@@ -67,18 +67,69 @@ namespace NetstatCSharp
         /// </summary>
         public enum MibTcpState
         {
+            /// <summary>
+            /// The TCP connection is in the CLOSED state that represents no connection state at all.
+            /// </summary>
             CLOSED = 1,
+
+            /// <summary>
+            /// The TCP connection is in the LISTEN state waiting for a connection request from any remote TCP and port.
+            /// </summary>
             LISTENING = 2,
+
+            /// <summary>
+            /// The TCP connection is in the SYN-SENT state waiting for a matching connection request after having sent a connection request (SYN packet).
+            /// </summary>
             SYN_SENT = 3,
+
+            /// <summary>
+            /// The TCP connection is in the SYN-RECEIVED state waiting for a confirming connection request acknowledgment after having both received and sent a connection request (SYN packet).
+            /// </summary>
             SYN_RCVD = 4,
+
+            /// <summary>
+            /// The TCP connection is in the ESTABLISHED state that represents an open connection, data received can be delivered to the user. This is the normal state for the data transfer phase of the TCP connection.
+            /// </summary>
             ESTABLISHED = 5,
+
+            /// <summary>
+            /// The TCP connection is FIN-WAIT-1 state waiting for a connection termination request from the remote TCP, or an acknowledgment of the connection termination request previously sent.
+            /// </summary>
             FIN_WAIT1 = 6,
+
+            /// <summary>
+            /// The TCP connection is FIN-WAIT-2 state waiting for a connection termination request from the remote TCP.
+            /// </summary>
             FIN_WAIT2 = 7,
+
+            /// <summary>
+            /// The TCP connection is in the CLOSE-WAIT state waiting for a connection termination request from the local user.
+            /// </summary>
             CLOSE_WAIT = 8,
+
+            /// <summary>
+            /// The TCP connection is in the CLOSING state waiting for a connection termination request acknowledgment from the remote TCP.
+            /// </summary>
             CLOSING = 9,
+
+            /// <summary>
+            /// The TCP connection is in the LAST-ACK state waiting for an acknowledgment of the connection termination request previously sent to the remote TCP (which includes an acknowledgment of its connection termination request).
+            /// </summary>
             LAST_ACK = 10,
+
+            /// <summary>
+            /// The TCP connection is in the TIME-WAIT state waiting for enough time to pass to be sure the remote TCP received the acknowledgment of its connection termination request.
+            /// </summary>
             TIME_WAIT = 11,
+
+            /// <summary>
+            /// The TCP connection is in the delete TCB state that represents the deletion of the Transmission Control Block (TCB), a data structure used to maintain information on each TCP entry.
+            /// </summary>
             DELETE_TCB = 12,
+
+            /// <summary>
+            /// Default value.
+            /// </summary>
             NONE = 0
         }
 
@@ -90,30 +141,145 @@ namespace NetstatCSharp
         [StructLayout(LayoutKind.Sequential)]
         public struct MIB_TCPROW_OWNER_PID
         {
+            /// <summary>
+            /// The state of the TCP connection.
+            /// </summary>
             public MibTcpState state;
+
+            /// <summary>
+            /// The local IPv4 address for the TCP connection on the local computer.
+            /// </summary>
             public uint localAddr;
+
+            /// <summary>
+            /// The local port number in network byte order for the TCP connection on the local computer.
+            /// </summary>
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
             public byte[] localPort;
+
+            /// <summary>
+            /// The IPv4 address for the TCP connection on the remote computer.
+            /// </summary>
             public uint remoteAddr;
+
+            /// <summary>
+            /// The remote port number in network byte order for the TCP connection on the remote computer.
+            /// </summary>
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
             public byte[] remotePort;
+
+            /// <summary>
+            /// The PID of the process that issued a context bind for this TCP connection.
+            /// </summary>
             public uint owningPid;
         }
 
+        /// <summary>
+        /// The structure contains information that describes an IPv6 TCP connection with 
+        /// IPv6 addresses, ports used by the TCP connection, and the specific process ID
+        /// (PID) associated with connection.
+        /// </summary>
         [StructLayout(LayoutKind.Sequential)]
         public struct MIB_TCP6ROW_OWNER_PID
         {
+            /// <summary>
+            /// The IPv6 address for the local endpoint of the TCP connection on the local computer.
+            /// </summary>
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
             public byte[] localAddr;
+
+            /// <summary>
+            /// The scope ID in network byte order for the local IPv6 address.
+            /// </summary>
             public uint localScopeId;
+
+            /// <summary>
+            /// The port number in network byte order for the local endpoint of the TCP connection on the local computer.
+            /// </summary>
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
             public byte[] localPort;
+
+            /// <summary>
+            /// The IPv6 address of the remote endpoint of the TCP connection on the remote computer.
+            /// </summary>
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
             public byte[] remoteAddr;
+
+            /// <summary>
+            /// The scope ID in network byte order for the remote IPv6 address.
+            /// </summary>
             public uint remoteScopeId;
+
+            /// <summary>
+            /// The port number in network byte order for the remote endpoint of the TCP connection on the remote computer.
+            /// </summary>
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
             public byte[] remotePort;
+
+            /// <summary>
+            /// The state of the TCP connection.
+            /// </summary>
             public MibTcpState state;
+
+            /// <summary>
+            /// The PID of the process that issued a context bind for this TCP connection.
+            /// </summary>
+            public uint owningPid;
+        }
+
+        /// <summary>
+        /// The structure contains an entry from the User Datagram Protocol (UDP) listener
+        /// table for IPv4 on the local computer. The entry also includes the process ID
+        /// (PID) that issued the call to the bind function for the UDP endpoint.
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MIB_UDPROW_OWNER_PID
+        {
+            /// <summary>
+            /// The IPv4 address of the UDP endpoint on the local computer.
+            /// </summary>
+            public uint localAddr;
+
+            /// <summary>
+            /// The port number of the UDP endpoint on the local computer. This member is stored in network byte order.
+            /// </summary>
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] localPort;
+
+            /// <summary>
+            /// The PID of the process that issued the call to the bind function for the UDP endpoint. This member is set to 0 when the PID is unavailable.
+            /// </summary>
+            public uint owningPid;
+        }
+
+        /// <summary>
+        /// The structure contains an entry from the User Datagram Protocol (UDP) listener
+        /// table for IPv6 on the local computer. The entry also includes the process ID
+        /// (PID) that issued the call to the bind function for the UDP endpoint.
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MIB_UDP6ROW_OWNER_PID
+        {
+            /// <summary>
+            /// The IPv6 address of the UDP endpoint on the local computer.
+            /// </summary>
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+            public byte[] localAddr;
+
+            /// <summary>
+            /// The scope ID in network byte order for the local IPv6 address.
+            /// </summary>
+            public uint localScopeId;
+
+            /// <summary>
+            /// The port number of the UDP endpoint on the local computer. This member is stored in network byte order.
+            /// </summary>
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
+            public byte[] localPort;
+
+            /// <summary>
+            /// The PID of the process that issued the call to the bind function for the UDP endpoint. This member is set to 0 when the PID is unavailable.
+            /// </summary>
             public uint owningPid;
         }
 
@@ -124,21 +290,79 @@ namespace NetstatCSharp
         [StructLayout(LayoutKind.Sequential)]
         public struct MIB_TCPTABLE_OWNER_PID
         {
+            /// <summary>
+            /// The number of <see cref="MIB_TCPROW_OWNER_PID"/> elements in the table.
+            /// </summary>
             public uint dwNumEntries;
-            [MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.Struct, SizeConst = 1)]
+
+            /// <summary>
+            /// An array of <see cref="MIB_TCPROW_OWNER_PID"/> structures returned by a call to <see cref="GetExtendedTcpTable"/>.
+            /// </summary>
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
             public MIB_TCPROW_OWNER_PID[] table;
         }
 
+        /// <summary>
+        /// The structure contains a table of process IDs (PIDs) and the IPv6 TCP links that
+        /// are context bound to these PIDs.
+        /// </summary>
         [StructLayout(LayoutKind.Sequential)]
         public struct MIB_TCP6TABLE_OWNER_PID
         {
+            /// <summary>
+            /// The number of <see cref="MIB_TCP6ROW_OWNER_PID"/> elements in the table.
+            /// </summary>
             public uint dwNumEntries;
-            [MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.Struct, SizeConst = 1)]
+
+            /// <summary>
+            /// An array of <see cref="MIB_TCP6ROW_OWNER_PID"/> structures returned by a call to <see cref="GetExtendedTcpTable"/>.
+            /// </summary>
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
             public MIB_TCP6ROW_OWNER_PID[] table;
         }
 
         /// <summary>
-        /// This class provides access an IPv4 TCP connection addresses and ports and its
+        /// The structure contains the User Datagram Protocol (UDP) listener table for IPv4
+        /// on the local computer. The table also includes the process ID (PID) that issued
+        /// the call to the bind function for each UDP endpoint.
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MIB_UDPTABLE_OWNER_PID
+        {
+            /// <summary>
+            /// The number of <see cref="MIB_UDPROW_OWNER_PID"/> elements in table.
+            /// </summary>
+            public uint dwNumEntries;
+
+            /// <summary>
+            /// An array of <see cref="MIB_UDPROW_OWNER_PID"/> structures returned by a call to <see cref="GetExtendedUdpTable"/>.
+            /// </summary>
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
+            public MIB_UDPROW_OWNER_PID[] table;
+        }
+
+        /// <summary>
+        /// The structure contains the User Datagram Protocol (UDP) listener table for IPv6
+        /// on the local computer. The table also includes the process ID (PID) that issued
+        /// the call to the bind function for each UDP endpoint.
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MIB_UDP6TABLE_OWNER_PID
+        {
+            /// <summary>
+            /// The number of <see cref="MIB_UDP6ROW_OWNER_PID"/> elements in table.
+            /// </summary>
+            public uint dwNumEntries;
+
+            /// <summary>
+            /// An array of <see cref="MIB_UDP6ROW_OWNER_PID"/> structures returned by a call to <see cref="GetExtendedUdpTable"/>.
+            /// </summary>
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
+            public MIB_UDP6ROW_OWNER_PID[] table;
+        }
+
+        /// <summary>
+        /// This class provides access an TCP connection addresses and ports and its
         /// associated Process IDs and names.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
@@ -171,55 +395,7 @@ namespace NetstatCSharp
         }
 
         /// <summary>
-        /// The structure contains an entry from the User Datagram Protocol (UDP) listener
-        /// table for IPv4 on the local computer. The entry also includes the process ID
-        /// (PID) that issued the call to the bind function for the UDP endpoint.
-        /// </summary>
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MIB_UDPROW_OWNER_PID
-        {
-            public uint localAddr;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-            public byte[] localPort;
-            public uint owningPid;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MIB_UDP6ROW_OWNER_PID
-        {
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
-            public byte[] localAddr;
-            public uint localScopeId;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-            public byte[] localPort;
-            public uint owningPid;
-        }
-
-        /// <summary>
-        /// The structure contains the User Datagram Protocol (UDP) listener table for IPv4
-        /// on the local computer. The table also includes the process ID (PID) that issued
-        /// the call to the bind function for each UDP endpoint.
-        /// </summary>
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MIB_UDPTABLE_OWNER_PID
-        {
-            public uint dwNumEntries;
-            [MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.Struct,
-                SizeConst = 1)]
-            public MIB_UDPROW_OWNER_PID[] table;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MIB_UDP6TABLE_OWNER_PID
-        {
-            public uint dwNumEntries;
-            [MarshalAs(UnmanagedType.ByValArray, ArraySubType = UnmanagedType.Struct,
-                SizeConst = 1)]
-            public MIB_UDP6ROW_OWNER_PID[] table;
-        }
-
-        /// <summary>
-        /// This class provides access an IPv4 UDP connection addresses and ports and its
+        /// This class provides access an UDP connection addresses and ports and its
         /// associated Process IDs and names.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
@@ -258,8 +434,7 @@ namespace NetstatCSharp
         // DllImport attribute indicates that the attributed method is exposed by an
         // unmanaged dynamic-link library 'iphlpapi.dll' as a static entry point.
         [DllImport("iphlpapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern uint GetExtendedTcpTable(IntPtr pTcpTable, ref int pdwSize,
-            bool bOrder, int ulAf, TcpTableClass tableClass, uint reserved = 0);
+        public static extern uint GetExtendedTcpTable(IntPtr pTcpTable, ref int pdwSize, bool bOrder, int ulAf, TcpTableClass tableClass, uint reserved = 0);
 
         /// <summary>
         /// Retrieves a table that contains a list of UDP endpoints available to the application.
@@ -275,7 +450,7 @@ namespace NetstatCSharp
         /// If the function fails, the return value is one of the following error codes.
         /// </returns>
         [DllImport("iphlpapi.dll")]
-        private static extern uint GetExtendedUdpTable(IntPtr pUdpTable, ref int pdwSize, bool bOrder, int ulAf, UdpTableClass tableClass, uint reserved = 0);
+        public static extern uint GetExtendedUdpTable(IntPtr pUdpTable, ref int pdwSize, bool bOrder, int ulAf, UdpTableClass tableClass, uint reserved = 0);
 
         /// <summary>
         /// This function reads and parses the active TCP socket connections available
@@ -288,7 +463,7 @@ namespace NetstatCSharp
         /// This exception may be thrown by the function Marshal.AllocHGlobal when there
         /// is insufficient memory to satisfy the request.
         /// </exception>
-        private static List<TcpProcessRecord> GetAllTcpv4Connections()
+        public static List<TcpProcessRecord> GetAllTcpv4Connections()
         {
             int bufferSize = 0;
             List<TcpProcessRecord> tcpTableRecords = new List<TcpProcessRecord>();
@@ -371,7 +546,7 @@ namespace NetstatCSharp
         /// This exception may be thrown by the function Marshal.AllocHGlobal when there
         /// is insufficient memory to satisfy the request.
         /// </exception>
-        private static List<TcpProcessRecord> GetAllTcpv6Connections()
+        public static List<TcpProcessRecord> GetAllTcpv6Connections()
         {
             int bufferSize = 0;
             List<TcpProcessRecord> tcpTableRecords = new List<TcpProcessRecord>();
@@ -454,7 +629,7 @@ namespace NetstatCSharp
         /// This exception may be thrown by the function Marshal.AllocHGlobal when there
         /// is insufficient memory to satisfy the request.
         /// </exception>
-        private static List<UdpProcessRecord> GetAllUdpv4Connections()
+        public static List<UdpProcessRecord> GetAllUdpv4Connections()
         {
             int bufferSize = 0;
             List<UdpProcessRecord> udpTableRecords = new List<UdpProcessRecord>();
@@ -519,12 +694,12 @@ namespace NetstatCSharp
         }
 
         /// <summary>
-        /// IPv6 の UDP 接続を列挙します。
+        /// IPv6 の UDP 接続を列挙したリストを返します。
         /// </summary>
         /// <param name="throwException">例外を発生させるかどうか。省略可能です。既定値は <c>false</c> です。</param>
         /// <returns>UDP 接続のリスト。<see para="throwException"/> が <c>false</c> の場合に失敗した場合は、<c>null</c> を返します。</returns>
         /// <exception cref="Exception"><see para="throwException"/> が <c>true</c> の場合に API の呼び出しに失敗しました。</exception>
-        private static List<UdpProcessRecord> GetAllUdpv6Connections(bool throwException = false)
+        public static List<UdpProcessRecord> GetAllUdpv6Connections(bool throwException = false)
         {
             int bufferSize = 0;
             List<UdpProcessRecord> udpTableRecords = new List<UdpProcessRecord>();
@@ -660,7 +835,7 @@ namespace NetstatCSharp
         /// Used to store or return the name and service number for a given service name.
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
-        public struct Servent
+        private struct Servent
         {
             /// <summary>
             /// The official name of the service.
@@ -713,14 +888,14 @@ namespace NetstatCSharp
         /// If successful, the function returns zero. Otherwise, it returns one of the error codes listed below.
         /// </returns>
         [DllImport("ws2_32.dll", SetLastError = true)]
-        private static extern int WSAStartup(ushort wVersionRequested, ref WSAData wsaData);
+        public static extern int WSAStartup(ushort wVersionRequested, ref WSAData wsaData);
 
         /// <summary>
         /// Terminates use of the Winsock 2 DLL (Ws2_32.dll).
         /// </summary>
         /// <returns>The return value is zero if the operation was successful. Otherwise, the value SOCKET_ERROR is returned.</returns>
         [DllImport("ws2_32.dll", SetLastError = true)]
-        private static extern int WSACleanup();
+        public static extern int WSACleanup();
 
         /// <summary>
         /// Retrieves service information corresponding to a service name and protocol.
@@ -845,17 +1020,26 @@ namespace NetstatCSharp
 
             Console.WriteLine("\"Protocol\"\t\"LocalAddress\"\t\"LocalPort\"\t\"LocalServiceName\"\t\"RemoteAddress\"\t\"RemotePort\"\t\"RemoteServiceName\"\t\"Status\"\t\"PID\"\t\"Process\"");
 
-            foreach (TcpProcessRecord tcpRecord in tcpv4Connections)
+            if (tcpv4Connections != null)
             {
-                Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"{4}\"\t{5}\t\"{6}\"\t\"{7}\"\t{8}\t\"{9}\"", Protocol.tcp.ToString(), tcpRecord.LocalAddress, tcpRecord.LocalPort, GetServiceByPort((short)tcpRecord.LocalPort, Protocol.tcp), tcpRecord.RemoteAddress, tcpRecord.RemotePort, GetServiceByPort((short)tcpRecord.RemotePort, Protocol.tcp), tcpRecord.State, tcpRecord.ProcessId, tcpRecord.ProcessName);
+                foreach (TcpProcessRecord tcpRecord in tcpv4Connections)
+                {
+                    Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"{4}\"\t{5}\t\"{6}\"\t\"{7}\"\t{8}\t\"{9}\"", Protocol.tcp.ToString(), tcpRecord.LocalAddress, tcpRecord.LocalPort, GetServiceByPort((short)tcpRecord.LocalPort, Protocol.tcp), tcpRecord.RemoteAddress, tcpRecord.RemotePort, GetServiceByPort((short)tcpRecord.RemotePort, Protocol.tcp), tcpRecord.State, tcpRecord.ProcessId, tcpRecord.ProcessName);
+                }
             }
-            foreach (TcpProcessRecord tcpv6Record in tcpv6Connections)
+            if (tcpv6Connections != null)
             {
-                Console.WriteLine("\"{0}\"\t\"[{1}]\"\t{2}\t\"{3}\"\t\"[{4}]\"\t{5}\t\"{6}\"\t\"{7}\"\t{8}\t\"{9}\"", Protocol.tcp.ToString(), tcpv6Record.LocalAddress, tcpv6Record.LocalPort, GetServiceByPort((short)tcpv6Record.LocalPort, Protocol.tcp), tcpv6Record.RemoteAddress, tcpv6Record.RemotePort, GetServiceByPort((short)tcpv6Record.RemotePort, Protocol.tcp), tcpv6Record.State, tcpv6Record.ProcessId, tcpv6Record.ProcessName);
+                foreach (TcpProcessRecord tcpv6Record in tcpv6Connections)
+                {
+                    Console.WriteLine("\"{0}\"\t\"[{1}]\"\t{2}\t\"{3}\"\t\"[{4}]\"\t{5}\t\"{6}\"\t\"{7}\"\t{8}\t\"{9}\"", Protocol.tcp.ToString(), tcpv6Record.LocalAddress, tcpv6Record.LocalPort, GetServiceByPort((short)tcpv6Record.LocalPort, Protocol.tcp), tcpv6Record.RemoteAddress, tcpv6Record.RemotePort, GetServiceByPort((short)tcpv6Record.RemotePort, Protocol.tcp), tcpv6Record.State, tcpv6Record.ProcessId, tcpv6Record.ProcessName);
+                }
             }
-            foreach (UdpProcessRecord udpRecord in udpv4Connections)
+            if (udpv4Connections != null)
             {
-                Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"*\"\t*\t\"*\"\t\"\"\t{4}\t\"{5}\"", Protocol.udp.ToString(), udpRecord.LocalAddress, udpRecord.LocalPort, GetServiceByPort((short)udpRecord.LocalPort, Protocol.udp), udpRecord.ProcessId, udpRecord.ProcessName);
+                foreach (UdpProcessRecord udpRecord in udpv4Connections)
+                {
+                    Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"*\"\t*\t\"*\"\t\"\"\t{4}\t\"{5}\"", Protocol.udp.ToString(), udpRecord.LocalAddress, udpRecord.LocalPort, GetServiceByPort((short)udpRecord.LocalPort, Protocol.udp), udpRecord.ProcessId, udpRecord.ProcessName);
+                }
             }
             if (udpv6Connections != null)
             {
