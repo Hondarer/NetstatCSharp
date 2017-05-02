@@ -599,7 +599,7 @@ namespace NetstatCSharp
             public uint ProcessId { get; private set; }
 
             /// <summary>
-            /// A process name that issued the call to the bind function for the UDP endpoint.
+            /// A process name that issued the call to the bind function.
             /// </summary>
             public string ProcessName { get; private set; }
 
