@@ -652,9 +652,27 @@ namespace NetstatCSharp
         public class TcpProcessRecord : ProcessRecordBase
         {
             /// <summary>
-            /// The local address for the TCP connection on the local computer.
+            /// The address for the TCP connection on the local computer.
             /// </summary>
             public IPAddress LocalAddress { get; private set; }
+
+            /// <summary>
+            /// The hostname for the TCP connection on the local computer.
+            /// </summary>
+            public string LocalHostname
+            {
+                get
+                {
+                    try
+                    {
+                        return Dns.GetHostEntry(LocalAddress).HostName;
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                }
+            }
 
             /// <summary>
             /// The local port number for the TCP connection on the local computer.
@@ -665,6 +683,24 @@ namespace NetstatCSharp
             /// The address for the TCP connection on the remote computer.
             /// </summary>
             public IPAddress RemoteAddress { get; private set; }
+
+            /// <summary>
+            /// The hostname for the TCP connection on the remote computer.
+            /// </summary>
+            public string RemoteHostname
+            {
+                get
+                {
+                    try
+                    {
+                        return Dns.GetHostEntry(RemoteAddress).HostName;
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                }
+            }
 
             /// <summary>
             /// The remote port number for the TCP connection on the remote computer.
@@ -707,6 +743,24 @@ namespace NetstatCSharp
             /// The address of the UDP endpoint on the local computer.
             /// </summary>
             public IPAddress LocalAddress { get; private set; }
+
+            /// <summary>
+            /// The hostname of the UDP endpoint on the local computer.
+            /// </summary>
+            public string LocalHostname
+            {
+                get
+                {
+                    try
+                    {
+                        return Dns.GetHostEntry(LocalAddress).HostName;
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                }
+            }
 
             /// <summary>
             /// The port number of the UDP endpoint on the local computer.
@@ -1157,15 +1211,34 @@ namespace NetstatCSharp
             List<UdpProcessRecord> udpConnections = GetAllUdpv4Connections(pidToProcessNameCache);
             udpConnections.AddRange(GetAllUdpv6Connections(pidToProcessNameCache));
 
-            Console.WriteLine("\"Protocol\"\t\"LocalAddress\"\t\"LocalPort\"\t\"LocalServiceName\"\t\"RemoteAddress\"\t\"RemotePort\"\t\"RemoteServiceName\"\t\"Status\"\t\"PID\"\t\"Process\"");
+            Console.WriteLine("\"Protocol\"\t\"LocalAddress\"\t\"LocalHostname\"\t\"LocalPort\"\t\"LocalServiceName\"\t\"RemoteAddress\"\t\"RemoteHostname\"\t\"RemotePort\"\t\"RemoteServiceName\"\t\"Status\"\t\"PID\"\t\"Process\"");
 
             foreach (TcpProcessRecord tcpRecord in tcpConnections)
             {
-                Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"{4}\"\t{5}\t\"{6}\"\t\"{7}\"\t{8}\t\"{9}\"", Protocol.tcp.ToString(), tcpRecord.LocalAddress, tcpRecord.LocalPort, GetServiceByPort((short)tcpRecord.LocalPort, Protocol.tcp), tcpRecord.RemoteAddress, tcpRecord.RemotePort, GetServiceByPort((short)tcpRecord.RemotePort, Protocol.tcp), tcpRecord.State, tcpRecord.ProcessId, tcpRecord.ProcessName);
+                Console.WriteLine("\"{0}\"\t\"{1}\"\t\"{2}\"\t{3}\t\"{4}\"\t\"{5}\"\t\"{6}\"\t{7}\t\"{8}\"\t\"{9}\"\t{10}\t\"{11}\"", 
+                    Protocol.tcp.ToString(), 
+                    tcpRecord.LocalAddress,
+                    tcpRecord.LocalHostname,
+                    tcpRecord.LocalPort, 
+                    GetServiceByPort((short)tcpRecord.LocalPort, Protocol.tcp), 
+                    tcpRecord.RemoteAddress,
+                    tcpRecord.RemoteHostname,
+                    tcpRecord.RemotePort,
+                    GetServiceByPort((short)tcpRecord.RemotePort, Protocol.tcp), 
+                    tcpRecord.State, 
+                    tcpRecord.ProcessId, 
+                    tcpRecord.ProcessName);
             }
             foreach (UdpProcessRecord udpRecord in udpConnections)
             {
-                Console.WriteLine("\"{0}\"\t\"{1}\"\t{2}\t\"{3}\"\t\"*\"\t*\t\"*\"\t\"\"\t{4}\t\"{5}\"", Protocol.udp.ToString(), udpRecord.LocalAddress, udpRecord.LocalPort, GetServiceByPort((short)udpRecord.LocalPort, Protocol.udp), udpRecord.ProcessId, udpRecord.ProcessName);
+                Console.WriteLine("\"{0}\"\t\"{1}\"\t\"{2}\"\t{3}\t\"{4}\"\t\"*\"\t\"*\"\t*\t\"*\"\t\"\"\t{5}\t\"{6}\"", 
+                    Protocol.udp.ToString(), 
+                    udpRecord.LocalAddress,
+                    udpRecord.LocalHostname,
+                    udpRecord.LocalPort, 
+                    GetServiceByPort((short)udpRecord.LocalPort, Protocol.udp),
+                    udpRecord.ProcessId, 
+                    udpRecord.ProcessName);
             }
         }
     }
