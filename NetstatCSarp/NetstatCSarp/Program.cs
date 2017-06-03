@@ -1211,11 +1211,11 @@ namespace NetstatCSharp
             List<UdpProcessRecord> udpConnections = GetAllUdpv4Connections(pidToProcessNameCache);
             udpConnections.AddRange(GetAllUdpv6Connections(pidToProcessNameCache));
 
-            Console.WriteLine("\"Protocol\"\t\"LocalAddress\"\t\"LocalHostname\"\t\"LocalPort\"\t\"LocalServiceName\"\t\"RemoteAddress\"\t\"RemoteHostname\"\t\"RemotePort\"\t\"RemoteServiceName\"\t\"Status\"\t\"PID\"\t\"Process\"");
+            Console.WriteLine("Protocol\tLocalAddress\tLocalHostname\tLocalPort\tLocalServiceName\tRemoteAddress\tRemoteHostname\tRemotePort\tRemoteServiceName\tStatus\tPID\tProcess");
 
             foreach (TcpProcessRecord tcpRecord in tcpConnections)
             {
-                Console.WriteLine("\"{0}\"\t\"{1}\"\t\"{2}\"\t{3}\t\"{4}\"\t\"{5}\"\t\"{6}\"\t{7}\t\"{8}\"\t\"{9}\"\t{10}\t\"{11}\"", 
+                Console.WriteLine("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}", 
                     Protocol.tcp.ToString(), 
                     tcpRecord.LocalAddress,
                     tcpRecord.LocalHostname,
@@ -1231,7 +1231,7 @@ namespace NetstatCSharp
             }
             foreach (UdpProcessRecord udpRecord in udpConnections)
             {
-                Console.WriteLine("\"{0}\"\t\"{1}\"\t\"{2}\"\t{3}\t\"{4}\"\t\"*\"\t\"*\"\t*\t\"*\"\t\"\"\t{5}\t\"{6}\"", 
+                Console.WriteLine("{0}\t{1}\t{2}\t{3}\t{4}\t*\t*\t*\t*\t\t{5}\t{6}", 
                     Protocol.udp.ToString(), 
                     udpRecord.LocalAddress,
                     udpRecord.LocalHostname,
